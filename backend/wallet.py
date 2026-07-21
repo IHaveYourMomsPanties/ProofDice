@@ -63,11 +63,11 @@ COINS: dict[str, CoinSpec] = {
     ),
     "ETH": CoinSpec(
         code="ETH", name="Ethereum (Base)", chain="Base", decimals=18,
-        color="#627eea", wired=False, min_deposit=0.001,
+        color="#627eea", wired=True, min_deposit=0.001,
     ),
     "USDC": CoinSpec(
         code="USDC", name="USD Coin (Base)", chain="Base", decimals=6,
-        color="#2775ca", wired=False, min_deposit=1.0,
+        color="#2775ca", wired=True, min_deposit=1.0,
         contract=os.environ.get("USDC_BASE_ADDRESS", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"),
     ),
     "USDT": CoinSpec(

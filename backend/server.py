@@ -25,6 +25,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from wallet import COINS, SUPPORTED_COINS, derive_address, coin_spec  # noqa: E402
+import watcher  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Config
@@ -262,10 +263,12 @@ async def _startup() -> None:
     await db.bets.create_index([("user_id", 1), ("created_at", -1)])
     await db.chat.create_index([("created_at", -1)])
     logger.info("BetterDice API startup complete")
+    watcher.start_watcher(db)
 
 
 @app.on_event("shutdown")
 async def _shutdown() -> None:
+    await watcher.stop_watcher()
     client.close()
 
 
@@ -330,6 +333,19 @@ async def wallet_addresses(user=Depends(get_current_user)):
             "address": addr,
         })
     return {"wallet_index": idx, "addresses": out}
+
+
+@api.get("/wallet/deposits")
+async def wallet_deposits(limit: int = 50, user=Depends(get_current_user)):
+    """Return the caller's on-chain deposit history (Base ETH + USDC)."""
+    limit = max(1, min(limit, 200))
+    rows = (
+        await db.deposits.find({"user_id": user["id"]}, {"_id": 0})
+        .sort("created_at", -1)
+        .limit(limit)
+        .to_list(limit)
+    )
+    return rows
 
 
 # ---------------------------------------------------------------------------

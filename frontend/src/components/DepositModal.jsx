@@ -185,7 +185,7 @@ export default function DepositModal({ open, onOpenChange, initialCoin = "ETH" }
                         className="flex items-center gap-2 text-xs font-black tracking-widest uppercase text-[color:#0b8a53]"
                       >
                         <span className="w-2 h-2 rounded-full bg-[#0fa968] animate-pulse" />
-                        Watcher online — deposits credited after 3 confirmations
+                        Watcher online — deposits credited after 12 confirmations
                       </div>
                     )}
                   </div>

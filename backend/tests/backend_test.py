@@ -68,9 +68,10 @@ def test_config_has_new_coin_list_and_specs():
     j = r.json()
     assert j["coins"] == EXPECTED_COINS
     specs = j["coin_specs"]
+    wired_expected = {"BTC": False, "ETH": True, "USDC": True, "USDT": False, "BNB": False, "SOL": False, "GRAM": False}
     for c in EXPECTED_COINS:
         s = specs[c]
-        assert s["wired"] is False
+        assert s["wired"] is wired_expected[c], f"{c} wired mismatch: {s['wired']}"
         assert "color" in s and "chain" in s and "decimals" in s
         assert s["min_deposit"] > 0
     # stables must have contract

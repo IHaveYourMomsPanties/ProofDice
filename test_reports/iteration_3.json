@@ -1,0 +1,32 @@
+{
+  "summary": "Phase 2 Step 1 Base watcher testing complete. 28/28 backend pytest cases pass (17 regression + 11 new watcher tests). Verified: (1) /api/config coin_specs shows ETH.wired=true, USDC.wired=true, all others false; (2) watcher started + is actively scanning against live Base mainnet via Alchemy every ~20s (log lines 'Base watcher started', 'watcher init: last_block=... (head=...)', 'watcher scan: {...}' confirmed present in /var/log/supervisor/backend.err.log with credited=0 head advancing); (3) /api/wallet/deposits returns [] for a fresh user and 401 without JWT; (4) _classify_transfer: external->ETH, erc20+USDC_BASE->USDC (case-insensitive), erc20+other contract->None, zero/missing value->None; (5) end-to-end _credit_deposit inserts a fake user with wallet_index=999999, credits fake ETH ('0xdead...:external:0') and USDC ('0xcafe...:log:0') transfers, verifies balances.ETH/USDC incremented, re-call with same uniqueId returns False and does NOT double-credit, db.deposits.find_one({_id: uniqueId}) confirmed to exist; (6) db.deposits has a unique index on unique_id — DuplicateKeyError swallowed; (7) all previously-passing endpoints (auth, dice/roll+prov-fair determinism, seeds/rotate, bets/all|mine|high-rollers, chat, wallet/addresses, faucet disabled) still pass. Frontend verified via Playwright: DepositModal ETH & USDC tabs show 'Watcher online — deposits credited after 12 confirmations' pulse indicator and NO deposit-pending-eth / deposit-pending-usdc testid; BTC/USDT/BNB/SOL/GRAM still render deposit-pending-<coin> amber warning.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_watcher.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "watcher.py _scan_once loops over ALL users each poll and issues one alchemy_getAssetTransfers RPC per user per 20s (currently 19 users -> 19 RPC calls / 20s = ~82k calls/day). Fine at Phase-2 scale but will exhaust Alchemy free tier quickly past ~1k users. Plan: switch to a batched eth_getLogs on the USDC contract filtered by topic1=user_addresses[] + a single alchemy_getAssetTransfers with toAddress omitted + toAddresses list (Alchemy supports up to 25). Add TODO comment in watcher.py.",
+    "watcher._loop reads BASE_RPC at import time; if the env var is missing at import the app still boots but silently never scans (only WARN log). Consider raising at startup if wired coins exist but ALCHEMY_BASE_RPC is empty.",
+    "watcher._get_last_block sets last_block once per process; if the watcher crashes mid-scan after issuing _credit_deposit but before _set_last_block, the next scan will re-see the same transfers — safe because unique_id dedupes, but note this dependency explicitly in a comment.",
+    "watcher._credit_deposit stores from_address/to_address lower-cased but block_timestamp is passed through raw from Alchemy metadata (already ISO8601) — good, no work needed.",
+    "server.py still 655 lines with the added watcher hooks — split into routers before Phase 2 Step 2 (withdrawal signer).",
+    "_credit_deposit uses $inc which is atomic, but user doc read happens outside the update — no read-your-write hazard here since we only $inc. Good.",
+    "watcher._loop error handler catches broad Exception and logs — combined with a 20s sleep this can silently mask persistent RPC failures. Consider surfacing consecutive-failure count via a Prometheus/metrics counter or db.system doc."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_watcher.py",
+    "/app/test_reports/iteration_3.json"
+  ],
+  "success_rate": {"backend": "100% (28/28)", "frontend": "100% (ETH/USDC show Watcher online, all 5 unwired coins show pending warning)"},
+  "test_credentials": "Self-registered TEST_<random> users via /api/auth/register.",
+  "seed_data_creation": "Each test run inserts a couple of TEST_<random> users + one TEST_watcher_<random> fake user (wallet_index=999999) cleaned up in the fixture teardown. Also inserts 2 fake deposit docs which are deleted in teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite is now split across /app/backend/tests/backend_test.py (Phase 1 regression) and /app/backend/tests/test_watcher.py (Phase 2 Step 1 watcher). Run with: cd /app/backend && python -m pytest tests/ -v --asyncio-mode=auto --junitxml=/app/test_reports/pytest/pytest_results.xml. Tests use REACT_APP_BACKEND_URL from /app/frontend/.env for HTTP + MONGO_URL/DB_NAME from /app/backend/.env for direct db checks. Frontend localStorage token key is 'sd_token' (NOT 'bd_token'). Watcher runs against live Base mainnet — do not delete db.deposits or db.system.base_last_block during tests (test suite cleans only its own fake user_id-scoped docs).",
+  "rca of the issue": "N/A — no blocking bugs."
+}
