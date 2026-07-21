@@ -31,6 +31,12 @@ logger = logging.getLogger("betterdice.watcher")
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
+# TODO(scale, Phase-2 Step-3): once user count > ~1k, switch USDC path to a
+# single batched eth_getLogs on the USDC contract filtered by topic2=user
+# addresses (up to 8k per call) and native ETH to a single alchemy_getAssetTransfers
+# call with toAddresses[] (Alchemy supports up to 25 per call — multi-batch).
+# Current per-user polling is O(N) RPC calls per interval and will exhaust
+# the Alchemy free tier past ~1k active addresses.
 BASE_RPC = os.environ.get("ALCHEMY_BASE_RPC")
 USDC_BASE = os.environ.get(
     "USDC_BASE_ADDRESS", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
