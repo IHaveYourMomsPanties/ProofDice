@@ -1,0 +1,80 @@
+{
+  "theme": "dark",
+  "theme_strategy": "Retro-Terminal meets High-End Casino. A deep, archived-website feel (reminiscent of 2013-era simpledice.com) blended with modern SaaS density. We create visual tension by mixing a luxury Serif font for headings with a sterile, phosphor-glowing Monospace font for all data. Dark charcoal backgrounds, sharp edges, and 1px borders dominate the UI.",
+  "color_palette": {
+    "background": "#09090b",
+    "foreground": "#e5e5e5",
+    "primary": "#4ade80",
+    "primary_foreground": "#000000",
+    "secondary": "#18181b",
+    "secondary_foreground": "#a1a1aa",
+    "accent_win": "#fbbf24",
+    "accent_loss": "#ef4444",
+    "muted": "#27272a",
+    "muted_foreground": "#71717a",
+    "border": "#27272a",
+    "input_bg": "#121214",
+    "ring": "#4ade80"
+  },
+  "typography": {
+    "headings": "Playfair Display",
+    "monospace_data": "JetBrains Mono",
+    "instructions_to_main_agent": "CRITICAL: Use 'Playfair Display' (Serif) ONLY for the Logo, major section headings, and marketing copy. STRICTLY use 'JetBrains Mono' (Monospace) for EVERYTHING else: body text, buttons, numerical data, balances, bet amounts, multipliers, seeds, and table contents to emulate the retro terminal gambling feel. Do NOT use Inter."
+  },
+  "spacing_and_layout": {
+    "strategy": "High Density Grid (Dashboard Mode). Tight gaps (`gap-4`) for the game control panel to group related math inputs, generous padding (`p-8`) for structural containers.",
+    "grid_modes": {
+      "desktop_layout": "grid-cols-1 md:grid-cols-12 gap-6. The chat sidebar takes `col-span-3` on the right (hidden on mobile, toggleable). The main content (Game + Tables) takes `col-span-9`."
+    },
+    "containers": "Use sharp edges (`rounded-none` or `rounded-sm`). Avoid heavily rounded corners. The UI should feel like a rigid, structural terminal."
+  },
+  "surface_styles": {
+    "cards_and_panels": "Flat Solid surfaces (`bg-[#18181b]`) with a 1px border (`border-[#27272a]`). No soft drop shadows. Focus on optical clarity.",
+    "header": "Solid Background (`bg-[#09090b]`) with a hard bottom border. Do not use glassmorphism.",
+    "inputs_and_controls": "Terminal inputs: flat dark background (`bg-[#121214]`), sharp 1px border. Focus state must use a high-contrast phosphor green ring (`focus:ring-2 focus:ring-[#4ade80]`)."
+  },
+  "component_guidelines": {
+    "buttons": {
+      "primary": "Sharp rectangle. Background `#4ade80`, text `#000000`, `font-bold`, uppercase monospace. Hover state: slightly lighter green, `-translate-y-[1px]`.",
+      "secondary": "Outline style with monospace text, `#a1a1aa` text that turns white on hover."
+    },
+    "tables": "Dense rows (`py-2`). Numbers MUST be right-aligned for easy magnitude comparison. Use `JetBrains Mono` exclusively. Alternating row backgrounds (`bg-[#18181b]` / `bg-[#121214]`).",
+    "dice_slider": "Custom styled HTML range input. The track should visually map the win/loss chance (e.g., green segment for win range, red segment for loss).",
+    "chat_sidebar": "Fixed width to the right. Minimalist message bubbles (just plain text rows, no chat-bubble tails), with timestamps in small monospace.",
+    "provably_fair_panel": "Dense, terminal-style panel below the game. Display Server Seed, Client Seed, and Nonce in raw monospace formats."
+  },
+  "animation_and_motion": {
+    "dice_roll": "Rapidly cycling numbers (using JetBrains Mono) with a slight blur/glitch effect for a few milliseconds, resolving sharply to the final result.",
+    "live_feed": "New rows in the 'All Bets' table should briefly flash green (win) or red (loss) for 500ms when they appear, then fade to the default row background.",
+    "hover_states": "Crisp, instantaneous color transitions. No slow fades for structural elements."
+  },
+  "icons_and_assets": {
+    "library": "lucide-react",
+    "usage": "Use icons sparingly. Rely on typography and symbols (like '₿' or '$') over icons to maintain the archived text-heavy look."
+  },
+  "accessibility": {
+    "contrast": "Ensure green (`#4ade80`) and amber (`#fbbf24`) pass APCA contrast against the `#09090b` background.",
+    "focus": "All inputs, buttons, and sliders MUST have visible focus rings.",
+    "data_testid": "MANDATORY: Apply `data-testid` to Roll button, Bet inputs, Chat input, Tab triggers, and Table rows for test automation."
+  },
+  "page_structures": {
+    "home_dashboard": {
+      "top_nav": "Logo ('Playfair Display'), Balances Dropdown, Faucet Button, User Profile/Login.",
+      "main_area": {
+        "hero_game_panel": "Dice interface. Big display for the 'Rolled' result. Over/Under toggle. Slider for chance. Number inputs for Bet Size, Payout, Win Chance. Huge 'ROLL DICE' button.",
+        "provably_fair_widget": "Collapsible terminal panel showing seeds.",
+        "tables_section": "Tabs: All Bets, High Rollers, My Bets. Live updating table."
+      },
+      "right_sidebar": "Live Chat. Header with online count. Message list. Input area at bottom."
+    }
+  },
+  "universal_guidelines_for_main_agent": [
+    "Do NOT center align the main app container. Left-align dense content and structure with grids.",
+    "NEVER use Inter font. Strictly adhere to Playfair Display for headings and JetBrains Mono for everything else.",
+    "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., `data-testid='roll-button'`, `data-testid='bet-input'`).",
+    "Ensure table columns containing numbers (Bet, Payout, Profit) are right-aligned to allow users to easily compare magnitudes.",
+    "Never use purely transparent backgrounds where content scrolls underneath; use solid colors to ensure legibility.",
+    "When customizing Shadcn components, override border-radius classes to `rounded-none` or `rounded-sm` to fit the retro brutalist theme.",
+    "Create depth through 1px borders and distinct dark background shades, avoiding soft drop shadows."
+  ]
+}
