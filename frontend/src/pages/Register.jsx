@@ -44,7 +44,7 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-black tracking-widest text-[color:var(--sd-purple-deep)]">
             CREATE ACCOUNT
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">Free demo coins on signup.</p>
+          <p className="text-sm text-muted-foreground mt-1">Real-crypto deposits. Start rolling in minutes.</p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
