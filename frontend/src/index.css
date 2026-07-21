@@ -2,74 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/* Fonts: DS-Digital (7-seg) for the dice display, Nunito for UI     */
+/* ------------------------------------------------------------------ */
+@import url("https://fonts.cdnfonts.com/css/ds-digital");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap");
+
 body {
     margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: #f4f2fb;
+    color: #2b2540;
+    letter-spacing: 0.01em;
 }
 
-code {
-    font-family:
-        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+.font-seg {
+    font-family: "DS-Digital", "Micro 5", ui-monospace, monospace;
+    letter-spacing: 0.04em;
 }
 
+/* ------------------------------------------------------------------ */
+/* Shadcn CSS-vars — override light theme to match SimpleDice palette */
+/* ------------------------------------------------------------------ */
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
+        /* Base surfaces */
+        --background: 250 60% 97%;
+        --foreground: 253 30% 20%;
         --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
+        --card-foreground: 253 30% 20%;
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
+        --popover-foreground: 253 30% 20%;
+
+        /* Brand purple (like #6B5FBE) */
+        --primary: 251 44% 56%;
+        --primary-foreground: 0 0% 100%;
+
+        /* Soft lavender secondaries */
+        --secondary: 250 45% 92%;
+        --secondary-foreground: 251 44% 30%;
+        --muted: 250 40% 94%;
+        --muted-foreground: 253 15% 45%;
+        --accent: 250 60% 88%;
+        --accent-foreground: 251 44% 30%;
+
+        --destructive: 344 78% 58%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 250 40% 88%;
+        --input: 250 40% 88%;
+        --ring: 251 44% 56%;
+        --radius: 1rem;
     }
     .dark {
-        --background: 0 0% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 0 0% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 0 0% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 0 0% 14.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 0 0% 14.9%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 0 0% 14.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 14.9%;
-        --input: 0 0% 14.9%;
-        --ring: 0 0% 83.1%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
+        --background: 253 40% 12%;
+        --foreground: 250 30% 96%;
+        --card: 253 35% 16%;
+        --card-foreground: 250 30% 96%;
+        --primary: 251 55% 65%;
+        --primary-foreground: 253 40% 12%;
+        --border: 253 30% 22%;
+        --input: 253 30% 22%;
+        --ring: 251 55% 65%;
     }
 }
 
@@ -78,38 +74,354 @@ code {
         @apply border-border;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply text-foreground;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
     }
 }
 
+/* ------------------------------------------------------------------ */
+/* Simpledice-flavoured tokens                                        */
+/* ------------------------------------------------------------------ */
+:root {
+    --sd-purple: #6b5fbe;
+    --sd-purple-dark: #5a4faa;
+    --sd-purple-deep: #4c3f9b;
+    --sd-lavender: #e4e1f5;
+    --sd-lavender-2: #d9d4ef;
+    --sd-lavender-3: #cfc9ea;
+    --sd-cream: #faf9fd;
+    --sd-win: #8dc63f;
+    --sd-win-glow: rgba(141, 198, 63, 0.55);
+    --sd-loss: #e44870;
+    --sd-loss-glow: rgba(228, 72, 112, 0.55);
+    --sd-off: rgba(107, 95, 190, 0.09); /* faint 7-seg off segment */
+    --sd-shadow: 0 6px 20px rgba(76, 63, 155, 0.12);
+    --sd-shadow-lg: 0 18px 44px rgba(76, 63, 155, 0.18);
+}
+
+/* Backgrounds & panels */
+.sd-app-bg {
+    background: linear-gradient(180deg, #ecebf7 0%, #f4f2fb 100%);
+}
+.sd-panel {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: var(--sd-shadow);
+}
+.sd-panel-lavender {
+    background: var(--sd-lavender);
+    border-radius: 16px;
+}
+.sd-panel-lavender-2 {
+    background: var(--sd-lavender-2);
+    border-radius: 16px;
+}
+
+/* Header bar */
+.sd-header {
+    background: var(--sd-purple);
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Roll history badges */
+.sd-roll-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    height: 42px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-family: "DS-Digital", monospace;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+}
+.sd-roll-badge.win {
+    background: rgba(141, 198, 63, 0.16);
+    color: #6ba22a;
+}
+.sd-roll-badge.loss {
+    background: rgba(228, 72, 112, 0.16);
+    color: #d13563;
+}
+
+/* Stat cards */
+.sd-stat-card {
+    background: var(--sd-lavender);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--sd-purple-deep);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+.sd-stat-card .sd-stat-val {
+    font-family: "Nunito", sans-serif;
+    font-weight: 800;
+    color: #2b2450;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+/* The big 7-seg digital dice display */
+.sd-dice-display {
+    position: relative;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 28px 20px;
+    text-align: center;
+    overflow: hidden;
+}
+.sd-dice-digit-wrap {
+    position: relative;
+    display: inline-block;
+    line-height: 1;
+}
+.sd-dice-off {
+    font-family: "DS-Digital", monospace;
+    font-size: clamp(96px, 18vw, 190px);
+    color: var(--sd-off);
+    letter-spacing: 0.02em;
+}
+.sd-dice-on {
+    font-family: "DS-Digital", monospace;
+    font-size: clamp(96px, 18vw, 190px);
+    position: absolute;
+    inset: 0;
+    letter-spacing: 0.02em;
+}
+.sd-dice-on.win {
+    color: var(--sd-win);
+    text-shadow: 0 0 24px var(--sd-win-glow);
+}
+.sd-dice-on.loss {
+    color: var(--sd-loss);
+    text-shadow: 0 0 24px var(--sd-loss-glow);
+}
+.sd-dice-on.idle {
+    color: var(--sd-lavender-3);
+}
+@keyframes sd-flicker {
+    0% { opacity: 0.55; transform: translateY(1px); }
+    30% { opacity: 1; transform: translateY(0); }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+.sd-dice-on.rolling {
+    animation: sd-flicker 90ms infinite;
+    color: var(--sd-purple);
+}
+
+/* Under / Over buttons */
+.sd-uo-btn {
+    background: #fff;
+    border: 1px solid var(--sd-lavender-2);
+    color: var(--sd-purple-deep);
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    font-size: 14px;
+    text-transform: uppercase;
+    transition:
+        transform 120ms ease,
+        background 120ms ease,
+        color 120ms ease;
+    box-shadow: 0 2px 0 var(--sd-lavender-2);
+}
+.sd-uo-btn.active {
+    background: var(--sd-purple);
+    color: #fff;
+    border-color: var(--sd-purple);
+    box-shadow: 0 2px 0 var(--sd-purple-deep);
+}
+.sd-uo-btn:hover:not(.active) {
+    background: var(--sd-lavender);
+}
+
+/* Big ROLL button */
+.sd-roll-btn {
+    background: var(--sd-purple);
+    color: #fff;
+    border-radius: 18px;
+    font-weight: 900;
+    letter-spacing: 0.28em;
+    font-size: 20px;
+    padding: 20px 24px;
+    width: 100%;
+    box-shadow: 0 6px 0 var(--sd-purple-deep);
+    transition:
+        transform 90ms ease,
+        box-shadow 90ms ease,
+        background 120ms ease;
+}
+.sd-roll-btn:hover {
+    background: var(--sd-purple-dark);
+}
+.sd-roll-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 var(--sd-purple-deep);
+}
+.sd-roll-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Slider */
+.sd-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--sd-lavender-2);
+    border-radius: 999px;
+    outline: none;
+}
+.sd-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 4px solid var(--sd-purple);
+    border-radius: 999px;
+    cursor: grab;
+    box-shadow: 0 3px 6px rgba(76, 63, 155, 0.25);
+}
+.sd-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    border: 4px solid var(--sd-purple);
+    border-radius: 999px;
+    cursor: grab;
+}
+
+/* Bet amount pill */
+.sd-bet-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--sd-lavender);
+    border-radius: 14px;
+    padding: 6px;
+    gap: 6px;
+}
+.sd-bet-pill .sd-icon-btn {
+    background: #fff;
+    color: var(--sd-purple);
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    box-shadow: 0 2px 0 var(--sd-lavender-2);
+    transition: transform 100ms ease;
+}
+.sd-bet-pill .sd-icon-btn:hover {
+    transform: translateY(-1px);
+}
+.sd-bet-pill .sd-bet-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    text-align: center;
+    font-weight: 800;
+    font-size: 18px;
+    color: #2b2540;
+    outline: none;
+    letter-spacing: 0.02em;
+}
+
+/* Coin selector on header */
+.sd-coin-pill {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #fff;
+    cursor: pointer;
+    transition: background 100ms ease;
+}
+.sd-coin-pill:hover { background: rgba(255, 255, 255, 0.2); }
+.sd-coin-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--sd-purple-deep);
+    font-weight: 900;
+    font-size: 12px;
+}
+
+/* Tabs (recent / my bets / high rollers) */
+.sd-tab {
+    padding: 10px 16px;
+    border-radius: 12px 12px 0 0;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+}
+.sd-tab.active {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+/* Bets table row flash on new */
+@keyframes sd-flash-win {
+    0% { background: rgba(141, 198, 63, 0.35); }
+    100% { background: transparent; }
+}
+@keyframes sd-flash-loss {
+    0% { background: rgba(228, 72, 112, 0.28); }
+    100% { background: transparent; }
+}
+.sd-flash-win { animation: sd-flash-win 600ms ease-out; }
+.sd-flash-loss { animation: sd-flash-loss 600ms ease-out; }
+
+/* Fairness panel */
+.sd-fairness {
+    background: #fff;
+    border: 1px dashed var(--sd-lavender-2);
+    border-radius: 16px;
+    padding: 16px;
+}
+.sd-mono {
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: #4a3f7d;
+    word-break: break-all;
+}
+
+/* Debug wrapper (kept from template) */
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
-    }
-
-    [data-debug-wrapper="true"] > * {
-        margin-left: inherit;
-        margin-right: inherit;
-        margin-top: inherit;
-        margin-bottom: inherit;
-        padding-left: inherit;
-        padding-right: inherit;
-        padding-top: inherit;
-        padding-bottom: inherit;
-        column-gap: inherit;
-        row-gap: inherit;
-        gap: inherit;
-        border-left-width: inherit;
-        border-right-width: inherit;
-        border-top-width: inherit;
-        border-bottom-width: inherit;
-        border-left-style: inherit;
-        border-right-style: inherit;
-        border-top-style: inherit;
-        border-bottom-style: inherit;
-        border-left-color: inherit;
-        border-right-color: inherit;
-        border-top-color: inherit;
-        border-bottom-color: inherit;
     }
 }
