@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/lib/api";
 import { toast } from "sonner";
+import DepositModal from "@/components/DepositModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Gift, LogOut, User as UserIcon, Wallet, ChevronDown, Menu } from "lucide-react";
+import { LogOut, User as UserIcon, Wallet, ChevronDown, ArrowDownToLine } from "lucide-react";
 
-const COINS = ["BTC", "LTC", "DOGE", "ETH"];
+const COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "SOL", "GRAM"];
 const COIN_COLOR = {
   BTC: "#f7931a",
-  LTC: "#345d9d",
-  DOGE: "#c2a633",
   ETH: "#627eea",
+  USDC: "#2775ca",
+  USDT: "#26a17b",
+  BNB: "#f3ba2f",
+  SOL: "#14f195",
+  GRAM: "#0098ea",
 };
 
 function CoinGlyph({ coin }) {
@@ -34,26 +37,16 @@ function fmt(v) {
 }
 
 export default function Header({ activeCoin, setActiveCoin }) {
-  const { user, logout, refresh } = useAuth();
+  const { user, logout } = useAuth();
   const nav = useNavigate();
-  const [claiming, setClaiming] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
 
-  const claim = async () => {
+  const openDeposit = () => {
     if (!user) {
       nav("/login");
       return;
     }
-    setClaiming(true);
-    try {
-      const { data } = await api.post("/faucet/claim");
-      toast.success("Faucet claimed — demo coins credited!");
-      await refresh();
-      void data;
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "Faucet cooldown");
-    } finally {
-      setClaiming(false);
-    }
+    setDepositOpen(true);
   };
 
   const balance = user?.balances?.[activeCoin] ?? 0;
@@ -124,15 +117,14 @@ export default function Header({ activeCoin, setActiveCoin }) {
 
         <div className="flex-1" />
 
-        {/* Faucet */}
+        {/* Deposit */}
         <button
-          onClick={claim}
-          disabled={claiming}
-          data-testid="faucet-button"
-          className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white/12 hover:bg-white/20 text-white font-bold px-4 py-2 text-sm tracking-wide"
+          onClick={openDeposit}
+          data-testid="deposit-button"
+          className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white text-[color:var(--sd-purple-deep)] hover:bg-white/90 font-black px-4 py-2 text-sm tracking-widest"
         >
-          <Gift className="w-4 h-4" />
-          {claiming ? "..." : "FAUCET"}
+          <ArrowDownToLine className="w-4 h-4" />
+          DEPOSIT
         </button>
 
         {/* User area */}
@@ -150,8 +142,8 @@ export default function Header({ activeCoin, setActiveCoin }) {
                 <span className="text-xs text-muted-foreground">{user.email}</span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={claim} data-testid="user-menu-faucet">
-                <Gift className="w-4 h-4 mr-2" /> Claim faucet
+              <DropdownMenuItem onClick={openDeposit} data-testid="user-menu-deposit">
+                <ArrowDownToLine className="w-4 h-4 mr-2" /> Deposit crypto
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => nav("/")} data-testid="user-menu-play">
                 <Wallet className="w-4 h-4 mr-2" /> Play dice
@@ -188,6 +180,7 @@ export default function Header({ activeCoin, setActiveCoin }) {
           </div>
         )}
       </div>
+      <DepositModal open={depositOpen} onOpenChange={setDepositOpen} initialCoin={activeCoin} />
     </header>
   );
 }

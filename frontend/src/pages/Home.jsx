@@ -4,6 +4,7 @@ import DiceGame from "@/components/DiceGame";
 import BetsTable from "@/components/BetsTable";
 import ChatSidebar from "@/components/ChatSidebar";
 import ProvablyFair from "@/components/ProvablyFair";
+import ComplianceBanner from "@/components/ComplianceBanner";
 import { useAuth } from "@/context/AuthContext";
 import { Link } from "react-router-dom";
 
@@ -17,6 +18,8 @@ export default function HomePage() {
       <Header activeCoin={activeCoin} setActiveCoin={setActiveCoin} />
 
       <main className="max-w-[1400px] mx-auto px-3 md:px-8 py-4 md:py-8">
+        <ComplianceBanner />
+
         {/* Marketing banner when logged out */}
         {!user && !loading && (
           <div
@@ -36,8 +39,9 @@ export default function HomePage() {
                 Roll fast. Roll fair. <span className="opacity-80">Roll BetterDice.</span>
               </h1>
               <p className="mt-2 text-sm md:text-base opacity-85 max-w-lg">
-                Provably-fair on-chain style dice with a 1% house edge. Claim the faucet
-                for free demo coins and start rolling in seconds.
+                Real-crypto provably-fair dice on 5 chains — BTC, ETH (Base),
+                BNB, SOL, TON — plus USDC / USDT. 1% house edge. Deposit
+                straight from your wallet and start rolling.
               </p>
             </div>
             <div className="flex gap-3">

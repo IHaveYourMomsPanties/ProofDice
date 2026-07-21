@@ -24,6 +24,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
 
+from wallet import COINS, SUPPORTED_COINS, derive_address, coin_spec  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
@@ -38,8 +40,9 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-me-in-prod-betterdi
 JWT_ALGO = "HS256"
 JWT_TTL_HOURS = 24 * 7
 
-SUPPORTED_COINS = ["BTC", "LTC", "DOGE", "ETH"]
-FAUCET_AMOUNTS = {"BTC": 0.00010000, "LTC": 0.10000000, "DOGE": 100.00000000, "ETH": 0.00500000}
+# Legacy demo faucet amounts kept only for coins where faucet still applies
+# (BetterDice's own token, to be launched later — for now no real faucet).
+FAUCET_AMOUNTS: dict[str, float] = {}  # empty — real crypto only
 FAUCET_COOLDOWN_MIN = 5
 HOUSE_EDGE_PCT = 1.0  # 1% house edge
 
@@ -278,10 +281,55 @@ async def root():
 async def get_config():
     return {
         "coins": SUPPORTED_COINS,
+        "coin_specs": {
+            c: {
+                "code": s.code,
+                "name": s.name,
+                "chain": s.chain,
+                "decimals": s.decimals,
+                "color": s.color,
+                "wired": s.wired,
+                "min_deposit": s.min_deposit,
+                "contract": s.contract,
+            }
+            for c, s in COINS.items()
+        },
         "faucet_amounts": FAUCET_AMOUNTS,
         "faucet_cooldown_min": FAUCET_COOLDOWN_MIN,
         "house_edge_pct": HOUSE_EDGE_PCT,
     }
+
+
+# ---------------------------------------------------------------------------
+# Routes: wallet (deposit addresses)
+# ---------------------------------------------------------------------------
+@api.get("/wallet/addresses")
+async def wallet_addresses(user=Depends(get_current_user)):
+    """Return the deterministic deposit address for each supported coin.
+
+    Addresses are derived on demand from the master mnemonic + user's
+    `wallet_index`; nothing is persisted here (deterministic).
+    """
+    idx = int(user.get("wallet_index", 0))
+    out = []
+    for code in SUPPORTED_COINS:
+        spec = COINS[code]
+        try:
+            addr = derive_address(code, idx)
+        except Exception as e:  # pragma: no cover
+            addr = None
+            logger.error("addr derivation failed %s idx=%s: %s", code, idx, e)
+        out.append({
+            "coin": code,
+            "name": spec.name,
+            "chain": spec.chain,
+            "color": spec.color,
+            "wired": spec.wired,
+            "min_deposit": spec.min_deposit,
+            "contract": spec.contract,
+            "address": addr,
+        })
+    return {"wallet_index": idx, "addresses": out}
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +342,15 @@ async def register(body: RegisterIn):
         raise HTTPException(400, "Username or email already in use")
     server_seed = new_server_seed()
     now = utcnow_iso()
-    starting_balance = {"BTC": 0.001, "LTC": 1.0, "DOGE": 1000.0, "ETH": 0.05}
+    # Assign next wallet_index atomically so per-user HD derivation is stable.
+    counter = await db.counters.find_one_and_update(
+        {"_id": "wallet_index"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=True,
+    )
+    wallet_index = int(counter["seq"])
+    starting_balance = {c: 0.0 for c in SUPPORTED_COINS}
     doc = {
         "id": str(uuid.uuid4()),
         "username": body.username,
@@ -308,6 +364,7 @@ async def register(body: RegisterIn):
         "server_seed_hashed": hash_seed(server_seed),
         "client_seed": secrets.token_hex(8),
         "nonce": 0,
+        "wallet_index": wallet_index,
         "last_faucet": None,
         "created_at": now,
     }
@@ -333,21 +390,22 @@ async def me(user=Depends(get_current_user)):
 # ---------------------------------------------------------------------------
 @api.post("/faucet/claim")
 async def faucet_claim(user=Depends(get_current_user)):
-    now = datetime.now(timezone.utc)
-    last = user.get("last_faucet")
-    if last:
-        last_dt = datetime.fromisoformat(last)
-        if (now - last_dt) < timedelta(minutes=FAUCET_COOLDOWN_MIN):
-            remaining = int(FAUCET_COOLDOWN_MIN * 60 - (now - last_dt).total_seconds())
-            raise HTTPException(429, f"Faucet cooldown, try again in {remaining}s")
-    balances = user["balances"]
-    for c, a in FAUCET_AMOUNTS.items():
-        balances[c] = round(balances.get(c, 0.0) + a, 8)
-    await db.users.update_one(
-        {"id": user["id"]},
-        {"$set": {"balances": balances, "last_faucet": now.isoformat()}},
+    """Faucet is intentionally disabled while we are in Phase 1 (real crypto only).
+
+    Once the BetterDice ERC-20 token launches on Base, this endpoint will
+    issue a signed off-chain claim voucher for a small daily amount of the
+    token that the user can redeem on-chain.
+    """
+    _ = user
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            "Faucet disabled — BetterDice is real-crypto only. "
+            "Deposit BTC / ETH (Base) / USDC / USDT / BNB / SOL / GRAM at "
+            "/api/wallet/addresses. A daily faucet for the upcoming BetterDice "
+            "token will launch once the ERC-20 is deployed on Base."
+        ),
     )
-    return {"ok": True, "credited": FAUCET_AMOUNTS, "balances": balances}
 
 
 # ---------------------------------------------------------------------------

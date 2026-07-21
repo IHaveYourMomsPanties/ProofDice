@@ -80,3 +80,9 @@ memory/test_credentials.md
 
 # Mobile development
 android-sdk/
+# CRITICAL: never commit env files (contain HOT_WALLET_MNEMONIC, API keys)
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env

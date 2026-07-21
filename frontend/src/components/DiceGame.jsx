@@ -41,7 +41,15 @@ export default function DiceGame({ activeCoin, onNewBet }) {
 
   // reset amount default per coin
   useEffect(() => {
-    const defaults = { BTC: 0.00001, LTC: 0.001, DOGE: 1, ETH: 0.0005 };
+    const defaults = {
+      BTC: 0.00001,
+      ETH: 0.0005,
+      USDC: 1,
+      USDT: 1,
+      BNB: 0.005,
+      SOL: 0.05,
+      GRAM: 1,
+    };
     setAmount(defaults[activeCoin] ?? 0.001);
   }, [activeCoin]);
 
@@ -71,7 +79,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
       return;
     }
     if (amount > (user.balances?.[activeCoin] ?? 0)) {
-      toast.error("Insufficient balance — hit the FAUCET for demo coins!");
+      toast.error(`Insufficient ${activeCoin} balance — click DEPOSIT to add funds`);
       return;
     }
     setRolling(true);
@@ -126,7 +134,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
   const nudge = (delta) => setAmount((a) => Math.max(0, +(Number(a) + delta).toFixed(8)));
   const halveBet = () => setAmount((a) => +(Number(a) / 2).toFixed(8));
   const doubleBet = () => setAmount((a) => +(Number(a) * 2).toFixed(8));
-  const minBet = () => setAmount(activeCoin === "DOGE" ? 1 : 0.00000001);
+  const minBet = () => setAmount(activeCoin === "GRAM" || activeCoin === "USDC" || activeCoin === "USDT" ? 0.01 : 0.00000001);
   const maxBet = () => setAmount(+(user?.balances?.[activeCoin] ?? 0));
 
   return (

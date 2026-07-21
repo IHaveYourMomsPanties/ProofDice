@@ -1,0 +1,40 @@
+{
+  "summary": "Phase 1 real-crypto backend + frontend regression testing complete. Rewrote backend_test.py for the new schema (0 starting balances, 7 coins BTC/ETH/USDC/USDT/BNB/SOL/GRAM, disabled faucet, wallet addresses endpoint). 17/17 backend pytest cases pass. Frontend UI (compliance banner, deposit modal with 7 tabs, coin selector with 7 options, dice game insufficient-balance toast, provably-fair panel) all verified end-to-end against the live preview URL.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/dice/roll", "issue": "Negative amount / out-of-range target still return HTTP 422 (Pydantic) rather than 400. Carry-over from iteration_1; semantically equivalent."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Register page", "issues": ["Subtitle still reads 'Free demo coins on signup.' but Phase 1 users start with 0 balance and there is no signup faucet — copy is stale and misleading. Suggest 'Real-crypto deposits. Start rolling in minutes.' or similar."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Update /app/frontend/src/pages/Register.jsx subtitle (line 47) to remove obsolete 'Free demo coins on signup.' copy — now inaccurate under Phase 1 real-crypto mode."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 639 lines — approaching the 700-line split threshold. Consider splitting into routers (auth, wallet, dice, bets, chat) before Phase 2 adds deposit watchers + withdrawal signers.",
+    "wallet.py: HOT_WALLET_MNEMONIC is read at import-time and cached in a module global; derive_address is @lru_cache(4096). Fine, but if HOT_WALLET_MNEMONIC is missing the whole app fails to import — good fail-fast, but ensure deployment secrets are set before startup.",
+    "wallet.py: TON derivation uses Bip44Coins.TON with standard BIP44 path — verify that bip_utils' TON friendly-address encoding is bounceable/non-bounceable as intended before Phase 2 wires up deposits.",
+    "server.py /api/dice/roll still reads+writes user doc non-atomically; concurrent rolls could reuse the same nonce. Move to $inc on nonce + findOneAndUpdate to be race-safe before mainnet balances land.",
+    "JWT_SECRET default still 'dev-secret-change-me-in-prod-betterdice' — must be overridden in prod .env.",
+    "COIN_COLOR is duplicated across Header.jsx and DepositModal.jsx; extract to a shared constants file to keep colors consistent when new coins are added.",
+    "DepositModal.jsx uses external api.qrserver.com — acceptable but adds a 3rd-party dependency on the deposit critical path. Consider bundling a tiny local QR generator (qrcode.react) for reliability."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py", "/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% (all required data-testids present and wired)"},
+  "test_credentials": "None required; tests self-register throwaway TEST_/testui_ users via /api/auth/register.",
+  "seed_data_creation": "Random TEST_/testui_ users + a few dice bets + one chat message per run; harmless.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression at /app/backend/tests/backend_test.py — pytest, reads REACT_APP_BACKEND_URL from /app/frontend/.env. To exercise the dice-roll determinism test the suite temporarily credits BTC balance directly in MongoDB using MONGO_URL/DB_NAME from /app/backend/.env (deposit watcher not built yet). Frontend data-testids: compliance-banner, compliance-ack, deposit-button, deposit-modal, deposit-tab-<coin>, deposit-address-<coin>, deposit-copy-<coin>, deposit-pending-<coin>, deposit-qr, coin-selector, coin-option-<coin>, dice-game, roll-button, button-under, button-over, target-slider, bet-amount-input, fairness-panel, fairness-toggle, fair-server-hash, fair-client-seed, fair-nonce, fair-rotate. Register form uses REGISTER.* testids from /app/frontend/src/constants/testIds/auth.js (register-name-input, register-email-input, register-password-input, register-password-confirm-input, register-submit-button).",
+  "rca of the issue": "N/A — no blocking bugs. Only copy nit on Register page subtitle."
+}

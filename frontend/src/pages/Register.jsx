@@ -22,7 +22,7 @@ export default function RegisterPage() {
     setBusy(true);
     try {
       await register(username, email, password);
-      toast.success(`Welcome, ${username}! Starter demo coins credited.`);
+      toast.success(`Welcome, ${username}! Deposit crypto to start rolling.`);
       nav("/");
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Registration failed");
