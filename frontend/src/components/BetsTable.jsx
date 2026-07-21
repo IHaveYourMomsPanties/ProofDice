@@ -27,14 +27,14 @@ function BetRow({ b, highlight }) {
       <td className="py-2 px-3 text-right font-bold text-xs">
         {b.direction === "under" ? "<" : ">"} {b.target.toFixed(2)}
       </td>
-      <td className={`py-2 px-3 text-right font-seg text-sm ${b.won ? "text-[#6ba22a]" : "text-[#d13563]"}`}>
+      <td className={`py-2 px-3 text-right font-seg text-sm ${b.won ? "text-[#4d8b25]" : "text-[#b23628]"}`}>
         {b.roll.toFixed(2)}
       </td>
       <td className="py-2 px-3 text-right text-xs font-bold text-muted-foreground">
         ×{b.payout_multiplier.toFixed(3)}
       </td>
       <td
-        className={`py-2 px-3 text-right font-seg text-sm ${b.won ? "text-[#6ba22a]" : "text-[#d13563]"}`}
+        className={`py-2 px-3 text-right font-seg text-sm ${b.won ? "text-[#4d8b25]" : "text-[#b23628]"}`}
       >
         {b.profit > 0 ? "+" : ""}
         {b.profit.toFixed(8).replace(/0+$/, "").replace(/\.$/, "")}

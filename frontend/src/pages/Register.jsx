@@ -37,7 +37,7 @@ export default function RegisterPage() {
         <div className="text-center mb-6">
           <div
             className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center font-black text-white font-seg text-2xl"
-            style={{ background: "linear-gradient(135deg,#8dc63f,#e44870)" }}
+            style={{ background: "linear-gradient(135deg,#7bc142,#ff6b57)" }}
           >
             8
           </div>

@@ -77,7 +77,7 @@ export default function ChatSidebar() {
           <div key={m.id} className="text-sm" data-testid="chat-message">
             <span className="font-black text-[color:var(--sd-purple-deep)]">{m.username}</span>
             <span className="mx-1 text-muted-foreground">›</span>
-            <span className="text-[color:#2b2540]">{m.message}</span>
+            <span className="text-[color:#1a3d2c]">{m.message}</span>
           </div>
         ))}
       </div>

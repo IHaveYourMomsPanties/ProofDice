@@ -23,17 +23,17 @@ export default function HomePage() {
             className="rounded-3xl mb-6 p-5 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
             style={{
               background:
-                "linear-gradient(135deg, #6b5fbe 0%, #4c3f9b 55%, #e44870 130%)",
+                "linear-gradient(135deg, #0fa968 0%, #075532 55%, #ff6b57 130%)",
               color: "white",
             }}
             data-testid="hero-banner"
           >
             <div>
               <div className="text-xs font-black tracking-[0.3em] opacity-80">
-                CRYPTO DICE · SINCE 2013
+                CRYPTO DICE · PROVABLY FAIR
               </div>
               <h1 className="text-3xl md:text-5xl font-black mt-1 leading-tight">
-                Roll fast. Roll fair. <span className="opacity-80">Roll SimpleDice.</span>
+                Roll fast. Roll fair. <span className="opacity-80">Roll BetterDice.</span>
               </h1>
               <p className="mt-2 text-sm md:text-base opacity-85 max-w-lg">
                 Provably-fair on-chain style dice with a 1% house edge. Claim the faucet
@@ -77,7 +77,7 @@ export default function HomePage() {
         </div>
 
         <footer className="mt-10 text-center text-xs text-muted-foreground pb-8">
-          SimpleDice · Play-money demo · Provably fair · Est. 2013 (reborn)
+          BetterDice.io · Play-money demo · Provably fair
         </footer>
       </main>
     </div>

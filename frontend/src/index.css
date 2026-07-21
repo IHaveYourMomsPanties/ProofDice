@@ -13,8 +13,8 @@ body {
     font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: #f4f2fb;
-    color: #2b2540;
+    background: #fbf5ea;
+    color: #1a3d2c;
     letter-spacing: 0.01em;
 }
 
@@ -24,48 +24,48 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Shadcn CSS-vars — override light theme to match SimpleDice palette */
+/* Shadcn CSS-vars — BetterDice palette (emerald + coral + ivory)     */
 /* ------------------------------------------------------------------ */
 @layer base {
     :root {
-        /* Base surfaces */
-        --background: 250 60% 97%;
-        --foreground: 253 30% 20%;
+        /* Base surfaces (warm ivory / cream) */
+        --background: 42 55% 96%;
+        --foreground: 168 40% 12%;
         --card: 0 0% 100%;
-        --card-foreground: 253 30% 20%;
+        --card-foreground: 168 40% 12%;
         --popover: 0 0% 100%;
-        --popover-foreground: 253 30% 20%;
+        --popover-foreground: 168 40% 12%;
 
-        /* Brand purple (like #6B5FBE) */
-        --primary: 251 44% 56%;
+        /* Brand emerald (like #0FA968) */
+        --primary: 158 83% 36%;
         --primary-foreground: 0 0% 100%;
 
-        /* Soft lavender secondaries */
-        --secondary: 250 45% 92%;
-        --secondary-foreground: 251 44% 30%;
-        --muted: 250 40% 94%;
-        --muted-foreground: 253 15% 45%;
-        --accent: 250 60% 88%;
-        --accent-foreground: 251 44% 30%;
+        /* Warm butter secondaries */
+        --secondary: 42 60% 92%;
+        --secondary-foreground: 158 60% 22%;
+        --muted: 42 40% 93%;
+        --muted-foreground: 168 15% 40%;
+        --accent: 42 60% 88%;
+        --accent-foreground: 158 60% 22%;
 
-        --destructive: 344 78% 58%;
+        --destructive: 8 78% 58%;
         --destructive-foreground: 0 0% 100%;
 
-        --border: 250 40% 88%;
-        --input: 250 40% 88%;
-        --ring: 251 44% 56%;
+        --border: 42 40% 84%;
+        --input: 42 40% 84%;
+        --ring: 158 83% 36%;
         --radius: 1rem;
     }
     .dark {
-        --background: 253 40% 12%;
-        --foreground: 250 30% 96%;
-        --card: 253 35% 16%;
-        --card-foreground: 250 30% 96%;
-        --primary: 251 55% 65%;
-        --primary-foreground: 253 40% 12%;
-        --border: 253 30% 22%;
-        --input: 253 30% 22%;
-        --ring: 251 55% 65%;
+        --background: 168 40% 10%;
+        --foreground: 42 50% 96%;
+        --card: 168 35% 14%;
+        --card-foreground: 42 50% 96%;
+        --primary: 158 70% 50%;
+        --primary-foreground: 168 40% 10%;
+        --border: 168 30% 22%;
+        --input: 168 30% 22%;
+        --ring: 158 70% 50%;
     }
 }
 
@@ -87,28 +87,30 @@ body {
 }
 
 /* ------------------------------------------------------------------ */
-/* Simpledice-flavoured tokens                                        */
+/* BetterDice-flavoured tokens (emerald + coral + ivory)              */
 /* ------------------------------------------------------------------ */
 :root {
-    --sd-purple: #6b5fbe;
-    --sd-purple-dark: #5a4faa;
-    --sd-purple-deep: #4c3f9b;
-    --sd-lavender: #e4e1f5;
-    --sd-lavender-2: #d9d4ef;
-    --sd-lavender-3: #cfc9ea;
-    --sd-cream: #faf9fd;
-    --sd-win: #8dc63f;
-    --sd-win-glow: rgba(141, 198, 63, 0.55);
-    --sd-loss: #e44870;
-    --sd-loss-glow: rgba(228, 72, 112, 0.55);
-    --sd-off: rgba(107, 95, 190, 0.09); /* faint 7-seg off segment */
-    --sd-shadow: 0 6px 20px rgba(76, 63, 155, 0.12);
-    --sd-shadow-lg: 0 18px 44px rgba(76, 63, 155, 0.18);
+    --sd-purple: #0fa968;          /* primary emerald */
+    --sd-purple-dark: #0b8a53;
+    --sd-purple-deep: #075532;
+    --sd-lavender: #f4ecd8;        /* warm butter */
+    --sd-lavender-2: #ead9b4;
+    --sd-lavender-3: #ddc487;
+    --sd-cream: #fbf5ea;
+    --sd-coral: #ff6b57;
+    --sd-coral-dark: #e14a38;
+    --sd-win: #7bc142;
+    --sd-win-glow: rgba(123, 193, 66, 0.55);
+    --sd-loss: #e14a38;
+    --sd-loss-glow: rgba(225, 74, 56, 0.55);
+    --sd-off: rgba(15, 169, 104, 0.09);
+    --sd-shadow: 0 6px 20px rgba(7, 85, 50, 0.12);
+    --sd-shadow-lg: 0 18px 44px rgba(7, 85, 50, 0.18);
 }
 
 /* Backgrounds & panels */
 .sd-app-bg {
-    background: linear-gradient(180deg, #ecebf7 0%, #f4f2fb 100%);
+    background: linear-gradient(180deg, #f7ecd3 0%, #fbf5ea 100%);
 }
 .sd-panel {
     background: #ffffff;
@@ -145,12 +147,12 @@ body {
     letter-spacing: 0.06em;
 }
 .sd-roll-badge.win {
-    background: rgba(141, 198, 63, 0.16);
-    color: #6ba22a;
+    background: rgba(123, 193, 66, 0.18);
+    color: #4d8b25;
 }
 .sd-roll-badge.loss {
-    background: rgba(228, 72, 112, 0.16);
-    color: #d13563;
+    background: rgba(225, 74, 56, 0.16);
+    color: #b23628;
 }
 
 /* Stat cards */
@@ -171,7 +173,7 @@ body {
 .sd-stat-card .sd-stat-val {
     font-family: "Nunito", sans-serif;
     font-weight: 800;
-    color: #2b2450;
+    color: #1a3d2c;
     font-size: 16px;
     letter-spacing: 0.02em;
     text-transform: none;
@@ -299,7 +301,7 @@ body {
     border: 4px solid var(--sd-purple);
     border-radius: 999px;
     cursor: grab;
-    box-shadow: 0 3px 6px rgba(76, 63, 155, 0.25);
+    box-shadow: 0 3px 6px rgba(7, 85, 50, 0.25);
 }
 .sd-slider::-moz-range-thumb {
     width: 24px;
@@ -343,7 +345,7 @@ body {
     text-align: center;
     font-weight: 800;
     font-size: 18px;
-    color: #2b2540;
+    color: #1a3d2c;
     outline: none;
     letter-spacing: 0.02em;
 }
@@ -394,11 +396,11 @@ body {
 
 /* Bets table row flash on new */
 @keyframes sd-flash-win {
-    0% { background: rgba(141, 198, 63, 0.35); }
+    0% { background: rgba(123, 193, 66, 0.35); }
     100% { background: transparent; }
 }
 @keyframes sd-flash-loss {
-    0% { background: rgba(228, 72, 112, 0.28); }
+    0% { background: rgba(225, 74, 56, 0.28); }
     100% { background: transparent; }
 }
 .sd-flash-win { animation: sd-flash-win 600ms ease-out; }
@@ -415,7 +417,7 @@ body {
     font-family:
         ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 12px;
-    color: #4a3f7d;
+    color: #2f6a4c;
     word-break: break-all;
 }
 

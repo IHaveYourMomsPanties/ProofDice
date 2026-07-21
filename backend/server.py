@@ -1,4 +1,4 @@
-"""SimpleDice-style crypto dice gambling backend.
+"""BetterDice.io crypto dice gambling backend.
 
 Provably-fair dice roll engine + JWT auth + demo-money balances + bet history + chat.
 """
@@ -34,7 +34,7 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-me-in-prod-simpledice")
+JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-me-in-prod-betterdice")
 JWT_ALGO = "HS256"
 JWT_TTL_HOURS = 24 * 7
 
@@ -43,12 +43,12 @@ FAUCET_AMOUNTS = {"BTC": 0.00010000, "LTC": 0.10000000, "DOGE": 100.00000000, "E
 FAUCET_COOLDOWN_MIN = 5
 HOUSE_EDGE_PCT = 1.0  # 1% house edge
 
-app = FastAPI(title="SimpleDice API")
+app = FastAPI(title="BetterDice API")
 api = APIRouter(prefix="/api")
 bearer = HTTPBearer(auto_error=False)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("simpledice")
+logger = logging.getLogger("betterdice")
 
 # ---------------------------------------------------------------------------
 # Helpers - Mongo & datetime
@@ -258,7 +258,7 @@ async def _startup() -> None:
     await db.bets.create_index([("created_at", -1)])
     await db.bets.create_index([("user_id", 1), ("created_at", -1)])
     await db.chat.create_index([("created_at", -1)])
-    logger.info("SimpleDice API startup complete")
+    logger.info("BetterDice API startup complete")
 
 
 @app.on_event("shutdown")
@@ -271,7 +271,7 @@ async def _shutdown() -> None:
 # ---------------------------------------------------------------------------
 @api.get("/")
 async def root():
-    return {"service": "simpledice", "ok": True}
+    return {"service": "betterdice", "ok": True}
 
 
 @api.get("/config")

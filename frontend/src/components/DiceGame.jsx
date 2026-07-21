@@ -150,7 +150,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
         <span className="sd-stat-val flex items-center gap-2">
           <span
             className="sd-coin-symbol"
-            style={{ background: "#6b5fbe", color: "#fff", width: 20, height: 20, fontSize: 10 }}
+            style={{ background: "#0fa968", color: "#fff", width: 20, height: 20, fontSize: 10 }}
           >
             {activeCoin[0]}
           </span>
@@ -221,7 +221,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
         </button>
         <button
           className="w-14 rounded-2xl flex items-center justify-center font-black text-white"
-          style={{ background: "linear-gradient(135deg,#6b5fbe,#e44870)" }}
+          style={{ background: "linear-gradient(135deg,#0fa968,#ff6b57)" }}
           title="Bonus boost (coming soon)"
           data-testid="bonus-boost-button"
           onClick={() => toast.info("Bonus boost coming soon")}
@@ -246,7 +246,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
         <div className="flex items-center gap-2 flex-1 justify-center">
           <span
             className="sd-coin-symbol"
-            style={{ background: "#6b5fbe", color: "#fff", width: 26, height: 26, fontSize: 12 }}
+            style={{ background: "#0fa968", color: "#fff", width: 26, height: 26, fontSize: 12 }}
           >
             {activeCoin[0]}
           </span>
@@ -287,14 +287,14 @@ export default function DiceGame({ activeCoin, onNewBet }) {
       {lastRoll && (
         <div
           className={`mt-4 rounded-2xl p-4 ${lastRoll.won ? "sd-flash-win" : "sd-flash-loss"}`}
-          style={{ background: lastRoll.won ? "rgba(141,198,63,0.10)" : "rgba(228,72,112,0.09)" }}
+          style={{ background: lastRoll.won ? "rgba(123,193,66,0.12)" : "rgba(225,74,56,0.10)" }}
           data-testid="last-roll-summary"
         >
           <div className="flex items-center justify-between text-sm">
-            <span className="font-black tracking-widest uppercase" style={{ color: lastRoll.won ? "#6ba22a" : "#d13563" }}>
+            <span className="font-black tracking-widest uppercase" style={{ color: lastRoll.won ? "#4d8b25" : "#b23628" }}>
               {lastRoll.won ? "You won" : "You lost"}
             </span>
-            <span className="font-seg text-lg" style={{ color: lastRoll.won ? "#6ba22a" : "#d13563" }}>
+            <span className="font-seg text-lg" style={{ color: lastRoll.won ? "#4d8b25" : "#b23628" }}>
               {lastRoll.roll.toFixed(2)} — {direction.toUpperCase()} {Number(target).toFixed(2)}
             </span>
           </div>

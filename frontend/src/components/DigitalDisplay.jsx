@@ -27,7 +27,7 @@ export default function DigitalDisplay({ value, state = "idle" }) {
       {state === "win" && (
         <div
           className="absolute top-3 right-4 rounded-full px-3 py-1 text-xs font-black tracking-widest"
-          style={{ background: "rgba(141,198,63,0.18)", color: "#6ba22a" }}
+          style={{ background: "rgba(123,193,66,0.20)", color: "#4d8b25" }}
           data-testid="win-badge"
         >
           WIN
@@ -36,7 +36,7 @@ export default function DigitalDisplay({ value, state = "idle" }) {
       {state === "loss" && (
         <div
           className="absolute top-3 right-4 rounded-full px-3 py-1 text-xs font-black tracking-widest"
-          style={{ background: "rgba(228,72,112,0.16)", color: "#d13563" }}
+          style={{ background: "rgba(225,74,56,0.18)", color: "#b23628" }}
           data-testid="loss-badge"
         >
           LOSS

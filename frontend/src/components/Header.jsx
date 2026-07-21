@@ -65,7 +65,7 @@ export default function Header({ activeCoin, setActiveCoin }) {
         <Link to="/" data-testid="logo-link" className="flex items-center gap-2 mr-2">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white"
-            style={{ background: "linear-gradient(135deg,#8dc63f,#e44870)" }}
+            style={{ background: "linear-gradient(135deg,#7bc142,#ff6b57)" }}
           >
             <span className="font-seg text-lg">8</span>
           </div>
@@ -73,7 +73,7 @@ export default function Header({ activeCoin, setActiveCoin }) {
             className="hidden sm:block text-white font-black tracking-wider text-lg"
             style={{ letterSpacing: "0.14em" }}
           >
-            SIMPLE<span className="opacity-70">DICE</span>
+            BETTER<span className="opacity-70">DICE</span>
           </span>
         </Link>
 
