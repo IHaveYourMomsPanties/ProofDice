@@ -47,6 +47,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
       USDC: 1,
       USDT: 1,
       BNB: 0.005,
+      POL: 1,
       SOL: 0.05,
       GRAM: 1,
     };

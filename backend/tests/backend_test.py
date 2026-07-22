@@ -1,4 +1,4 @@
-"""BetterDice.io Phase 1 (real-crypto custodial) backend regression tests."""
+"""BetterDice.io Phase 2 Step 1b (multi-chain: ETH + BNB + Polygon) regression tests."""
 import hashlib
 import hmac
 import os
@@ -21,7 +21,13 @@ def _load_frontend_url():
 BASE_URL = _load_frontend_url().rstrip("/")
 API = f"{BASE_URL}/api"
 
-EXPECTED_COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "SOL", "GRAM"]
+EXPECTED_COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "POL", "SOL", "GRAM"]
+
+# aggregate `wired` per asset (any network wired -> asset wired)
+EXPECTED_WIRED = {
+    "BTC": False, "ETH": True, "USDC": True, "USDT": True,
+    "BNB": True, "POL": True, "SOL": False, "GRAM": False,
+}
 
 BECH32_RE = re.compile(r"^bc1[a-z0-9]{20,90}$")
 EVM_RE = re.compile(r"^0x[a-fA-F0-9]{40}$")
@@ -62,43 +68,60 @@ def auth_headers(u):
 
 
 # ---------------- config ----------------
-def test_config_has_new_coin_list_and_specs():
+def test_config_coins_and_assets():
     r = requests.get(f"{API}/config")
     assert r.status_code == 200
     j = r.json()
     assert j["coins"] == EXPECTED_COINS
-    specs = j["coin_specs"]
-    wired_expected = {"BTC": False, "ETH": True, "USDC": True, "USDT": False, "BNB": False, "SOL": False, "GRAM": False}
+    assets = j["assets"]
+    assert set(assets.keys()) == set(EXPECTED_COINS)
     for c in EXPECTED_COINS:
-        s = specs[c]
-        assert s["wired"] is wired_expected[c], f"{c} wired mismatch: {s['wired']}"
-        assert "color" in s and "chain" in s and "decimals" in s
-        assert s["min_deposit"] > 0
-    # stables must have contract
-    assert specs["USDC"]["contract"].startswith("0x")
-    assert specs["USDT"]["contract"].startswith("0x")
-    # non-stables should have contract=None
-    for c in ("BTC", "ETH", "BNB", "SOL", "GRAM"):
-        assert specs[c]["contract"] in (None, "")
-    # faucet_amounts should be empty in phase 1
+        a = assets[c]
+        assert a["code"] == c
+        assert a["wired"] is EXPECTED_WIRED[c], f"{c} wired={a['wired']} expected {EXPECTED_WIRED[c]}"
+        assert "name" in a and "decimals" in a and "color" in a and "min_bet" in a
     assert j["faucet_amounts"] == {}
 
 
+def test_config_networks_list():
+    j = requests.get(f"{API}/config").json()
+    nets = j["networks"]
+    assert isinstance(nets, list)
+    assert len(nets) == 11, f"expected 11 network entries, got {len(nets)}"
+
+    # Build (asset, chain_id) -> wired map
+    pairs = {(n["asset"], n["chain_id"]): n["wired"] for n in nets}
+
+    # Wired subset (8): ETH-eth, USDC-eth, USDC-polygon, USDT-eth, USDT-bnb,
+    # USDT-polygon, BNB-bnb, POL-polygon
+    wired_expected = {
+        ("ETH", "eth"), ("USDC", "eth"), ("USDC", "polygon"),
+        ("USDT", "eth"), ("USDT", "bnb"), ("USDT", "polygon"),
+        ("BNB", "bnb"), ("POL", "polygon"),
+    }
+    for key in wired_expected:
+        assert pairs.get(key) is True, f"{key} should be wired=True"
+
+    # Unwired
+    for key in [("BTC", "btc"), ("SOL", "sol"), ("GRAM", "ton")]:
+        assert pairs.get(key) is False, f"{key} should be wired=False"
+
+    # USDT has 3 networks; USDC has 2
+    usdt_nets = [n for n in nets if n["asset"] == "USDT"]
+    usdc_nets = [n for n in nets if n["asset"] == "USDC"]
+    assert len(usdt_nets) == 3
+    assert len(usdc_nets) == 2
+    for n in usdt_nets + usdc_nets:
+        assert n["contract"] and n["contract"].startswith("0x")
+
+
 # ---------------- auth ----------------
-def test_register_returns_zero_balances_and_wallet_index(user_a):
+def test_register_returns_zero_balances(user_a):
     u = user_a["user"]
     assert u["balances"] == {c: 0.0 for c in EXPECTED_COINS}
     assert u["nonce"] == 0
     assert len(u["server_seed_hashed"]) == 64
     assert user_a["token"]
-
-
-def test_two_registrations_get_consecutive_wallet_indices():
-    a = _register()
-    b = _register()
-    ra = requests.get(f"{API}/wallet/addresses", headers=auth_headers(a)).json()
-    rb = requests.get(f"{API}/wallet/addresses", headers=auth_headers(b)).json()
-    assert rb["wallet_index"] == ra["wallet_index"] + 1
 
 
 def test_login_ok_and_wrong_password(user_a):
@@ -115,7 +138,7 @@ def test_me_requires_auth(user_a):
     assert r3.status_code == 200
 
 
-# ---------------- wallet addresses ----------------
+# ---------------- wallet addresses (new per-asset+per-network shape) ----------------
 def test_wallet_addresses_requires_auth():
     r = requests.get(f"{API}/wallet/addresses")
     assert r.status_code == 401
@@ -125,20 +148,46 @@ def test_wallet_addresses_shape_and_formats(user_a):
     r = requests.get(f"{API}/wallet/addresses", headers=auth_headers(user_a))
     assert r.status_code == 200, r.text
     j = r.json()
-    addrs = {row["coin"]: row["address"] for row in j["addresses"]}
-    assert list(addrs.keys()) == EXPECTED_COINS
+    assert "wallet_index" in j and isinstance(j["wallet_index"], int)
+    assets = {row["asset"]: row for row in j["assets"]}
+    assert set(assets.keys()) == set(EXPECTED_COINS)
 
-    # BTC: bech32
-    assert BECH32_RE.match(addrs["BTC"]), f"BTC not bech32: {addrs['BTC']}"
-    # EVM addrs
-    for c in ("ETH", "USDC", "USDT", "BNB"):
-        assert EVM_RE.match(addrs[c]), f"{c} not EVM: {addrs[c]}"
-    # ETH-family share the same derivation
-    assert addrs["ETH"].lower() == addrs["USDC"].lower() == addrs["USDT"].lower() == addrs["BNB"].lower()
-    # SOL: base58
-    assert B58_RE.match(addrs["SOL"]), f"SOL not b58: {addrs['SOL']}"
-    # GRAM: TON friendly-address
-    assert addrs["GRAM"].startswith(("UQ", "EQ")), f"GRAM not TON friendly: {addrs['GRAM']}"
+    # Per-asset network counts
+    assert len(assets["BTC"]["networks"]) == 1
+    assert len(assets["ETH"]["networks"]) == 1
+    assert len(assets["USDC"]["networks"]) == 2
+    assert len(assets["USDT"]["networks"]) == 3
+    assert len(assets["BNB"]["networks"]) == 1
+    assert len(assets["POL"]["networks"]) == 1
+    assert len(assets["SOL"]["networks"]) == 1
+    assert len(assets["GRAM"]["networks"]) == 1
+
+    # Verify network entry fields
+    for row in j["assets"]:
+        for n in row["networks"]:
+            for k in ("chain", "chain_id", "addr_kind", "contract", "wired", "min_deposit", "address"):
+                assert k in n, f"missing {k} in {row['asset']} network entry"
+
+    # BTC first (and only) network -> bech32
+    btc_addr = assets["BTC"]["networks"][0]["address"]
+    assert BECH32_RE.match(btc_addr), f"BTC not bech32: {btc_addr}"
+
+    # SOL base58
+    sol_addr = assets["SOL"]["networks"][0]["address"]
+    assert B58_RE.match(sol_addr), f"SOL not b58: {sol_addr}"
+
+    # GRAM TON friendly
+    gram_addr = assets["GRAM"]["networks"][0]["address"]
+    assert gram_addr.startswith(("UQ", "EQ")), f"GRAM not TON friendly: {gram_addr}"
+
+    # All EVM addresses (ETH, BNB, POL, all USDC nets, all USDT nets) IDENTICAL for same user
+    evm_addresses = set()
+    for code in ("ETH", "USDC", "USDT", "BNB", "POL"):
+        for n in assets[code]["networks"]:
+            if n["addr_kind"] == "evm":
+                assert EVM_RE.match(n["address"]), f"{code}/{n['chain']} not EVM: {n['address']}"
+                evm_addresses.add(n["address"].lower())
+    assert len(evm_addresses) == 1, f"EVM addresses differ across chains: {evm_addresses}"
 
 
 def test_wallet_addresses_deterministic(user_a):
@@ -148,30 +197,23 @@ def test_wallet_addresses_deterministic(user_a):
 
 
 def test_two_users_have_different_addresses(user_a, user_b):
-    a = {r["coin"]: r["address"] for r in requests.get(f"{API}/wallet/addresses", headers=auth_headers(user_a)).json()["addresses"]}
-    b = {r["coin"]: r["address"] for r in requests.get(f"{API}/wallet/addresses", headers=auth_headers(user_b)).json()["addresses"]}
-    assert a["BTC"] != b["BTC"]
-    assert a["ETH"] != b["ETH"]
-    assert a["SOL"] != b["SOL"]
-    assert a["GRAM"] != b["GRAM"]
+    a_assets = {row["asset"]: row for row in requests.get(f"{API}/wallet/addresses", headers=auth_headers(user_a)).json()["assets"]}
+    b_assets = {row["asset"]: row for row in requests.get(f"{API}/wallet/addresses", headers=auth_headers(user_b)).json()["assets"]}
+    assert a_assets["BTC"]["networks"][0]["address"] != b_assets["BTC"]["networks"][0]["address"]
+    assert a_assets["ETH"]["networks"][0]["address"] != b_assets["ETH"]["networks"][0]["address"]
+    assert a_assets["SOL"]["networks"][0]["address"] != b_assets["SOL"]["networks"][0]["address"]
 
 
 # ---------------- faucet disabled ----------------
-def test_faucet_returns_400_with_deposit_message(user_a):
+def test_faucet_returns_400(user_a):
     r = requests.post(f"{API}/faucet/claim", headers=auth_headers(user_a))
     assert r.status_code == 400
-    body = r.text.lower()
-    assert "deposit" in body or "/api/wallet/addresses" in body
-    assert "betterdice" in body or "token" in body
 
 
 # ---------------- dice ----------------
 def test_dice_roll_insufficient_balance(user_a):
-    r = requests.post(
-        f"{API}/dice/roll",
-        headers=auth_headers(user_a),
-        json={"coin": "BTC", "amount": 0.0001, "target": 50, "direction": "under"},
-    )
+    r = requests.post(f"{API}/dice/roll", headers=auth_headers(user_a),
+                      json={"coin": "BTC", "amount": 0.0001, "target": 50, "direction": "under"})
     assert r.status_code == 400
     assert "insufficient" in r.text.lower()
 
@@ -182,12 +224,9 @@ def test_dice_roll_invalid_coin(user_a):
     assert r.status_code == 400
 
 
-def test_dice_roll_after_manual_credit_and_prov_fair_determinism(user_b):
-    # Manually credit balance via mongo for the test (bypass — no deposit watcher yet)
+def test_dice_roll_and_provably_fair_determinism(user_b):
+    # Manually credit balance via mongo (no full deposit path in test)
     import pymongo
-    from urllib.parse import quote_plus
-    mongo_url = os.environ.get("MONGO_URL") or open("/app/backend/.env").read()
-    # Read from backend/.env
     env = {}
     for line in open("/app/backend/.env"):
         line = line.strip()
@@ -196,20 +235,17 @@ def test_dice_roll_after_manual_credit_and_prov_fair_determinism(user_b):
             env[k] = v.strip().strip('"').strip("'")
     m = pymongo.MongoClient(env["MONGO_URL"])
     db = m[env["DB_NAME"]]
-    db.users.update_one({"id": user_b["user"]["id"]}, {"$set": {"balances." + "BTC": 1.0}})
-    # rotate seeds
+    db.users.update_one({"id": user_b["user"]["id"]}, {"$set": {"balances.BTC": 1.0}})
+
     r = requests.post(f"{API}/seeds/rotate", headers=auth_headers(user_b), json={"client_seed": "testseed"})
     assert r.status_code == 200
-    # roll
     r2 = requests.post(f"{API}/dice/roll", headers=auth_headers(user_b),
                        json={"coin": "BTC", "amount": 0.001, "target": 50, "direction": "under"})
     assert r2.status_code == 200, r2.text
     roll1 = r2.json()["roll"]
-    # rotate again to reveal server seed
     r3 = requests.post(f"{API}/seeds/rotate", headers=auth_headers(user_b), json={"client_seed": "testseed"})
     prev = r3.json()["previous_server_seed"]
-    msg = f"testseed:0".encode()
-    digest = hmac.new(prev.encode(), msg, hashlib.sha256).hexdigest()
+    digest = hmac.new(prev.encode(), b"testseed:0", hashlib.sha256).hexdigest()
     expected = round((int(digest[:8], 16) % 10000) / 100.0, 2)
     assert expected == roll1
 

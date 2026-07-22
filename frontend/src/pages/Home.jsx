@@ -39,9 +39,9 @@ export default function HomePage() {
                 Roll fast. Roll fair. <span className="opacity-80">Roll BetterDice.</span>
               </h1>
               <p className="mt-2 text-sm md:text-base opacity-85 max-w-lg">
-                Real-crypto provably-fair dice on 5 chains — BTC, ETH (Base),
-                BNB, SOL, TON — plus USDC / USDT. 1% house edge. Deposit
-                straight from your wallet and start rolling.
+                Real-crypto provably-fair dice on the big three EVM chains —
+                Ethereum, BNB Chain, and Polygon — plus BTC, Solana and TON.
+                1% house edge. Deposit straight from your wallet and start rolling.
               </p>
             </div>
             <div className="flex gap-3">

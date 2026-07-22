@@ -24,7 +24,14 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
 from starlette.middleware.cors import CORSMiddleware
 
-from wallet import COINS, SUPPORTED_COINS, derive_address, coin_spec  # noqa: E402
+from wallet import (  # noqa: E402
+    ASSETS,
+    NETWORKS,
+    SUPPORTED_COINS,
+    asset_spec,
+    derive_network_address,
+    networks_for,
+)
 import watcher  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -284,19 +291,30 @@ async def root():
 async def get_config():
     return {
         "coins": SUPPORTED_COINS,
-        "coin_specs": {
-            c: {
-                "code": s.code,
-                "name": s.name,
-                "chain": s.chain,
-                "decimals": s.decimals,
-                "color": s.color,
-                "wired": s.wired,
-                "min_deposit": s.min_deposit,
-                "contract": s.contract,
+        "assets": {
+            code: {
+                "code": a.code,
+                "name": a.name,
+                "decimals": a.decimals,
+                "color": a.color,
+                "min_bet": a.min_bet,
+                # Aggregate wired flag = any network for this asset is wired
+                "wired": any(n.wired for n in networks_for(code)),
             }
-            for c, s in COINS.items()
+            for code, a in ASSETS.items()
         },
+        "networks": [
+            {
+                "asset": n.asset,
+                "chain": n.chain,
+                "chain_id": n.chain_id,
+                "addr_kind": n.addr_kind,
+                "contract": n.contract,
+                "wired": n.wired,
+                "min_deposit": n.min_deposit,
+            }
+            for n in NETWORKS
+        ],
         "faucet_amounts": FAUCET_AMOUNTS,
         "faucet_cooldown_min": FAUCET_COOLDOWN_MIN,
         "house_edge_pct": HOUSE_EDGE_PCT,
@@ -308,36 +326,43 @@ async def get_config():
 # ---------------------------------------------------------------------------
 @api.get("/wallet/addresses")
 async def wallet_addresses(user=Depends(get_current_user)):
-    """Return the deterministic deposit address for each supported coin.
+    """Return the deterministic deposit address for each supported (asset, network).
 
-    Addresses are derived on demand from the master mnemonic + user's
-    `wallet_index`; nothing is persisted here (deterministic).
+    A single asset may have multiple deposit networks (e.g. USDC on Ethereum
+    AND Polygon). The response is grouped by asset with a `networks` sub-list.
     """
     idx = int(user.get("wallet_index", 0))
     out = []
     for code in SUPPORTED_COINS:
-        spec = COINS[code]
-        try:
-            addr = derive_address(code, idx)
-        except Exception as e:  # pragma: no cover
-            addr = None
-            logger.error("addr derivation failed %s idx=%s: %s", code, idx, e)
+        spec = asset_spec(code)
+        nets = []
+        for net in networks_for(code):
+            try:
+                addr = derive_network_address(net, idx)
+            except Exception as e:  # pragma: no cover
+                addr = None
+                logger.error("addr derivation failed %s/%s idx=%s: %s", code, net.chain, idx, e)
+            nets.append({
+                "chain": net.chain,
+                "chain_id": net.chain_id,
+                "addr_kind": net.addr_kind,
+                "contract": net.contract,
+                "wired": net.wired,
+                "min_deposit": net.min_deposit,
+                "address": addr,
+            })
         out.append({
-            "coin": code,
+            "asset": code,
             "name": spec.name,
-            "chain": spec.chain,
             "color": spec.color,
-            "wired": spec.wired,
-            "min_deposit": spec.min_deposit,
-            "contract": spec.contract,
-            "address": addr,
+            "networks": nets,
         })
-    return {"wallet_index": idx, "addresses": out}
+    return {"wallet_index": idx, "assets": out}
 
 
 @api.get("/wallet/deposits")
 async def wallet_deposits(limit: int = 50, user=Depends(get_current_user)):
-    """Return the caller's on-chain deposit history (Base ETH + USDC)."""
+    """Return the caller's on-chain deposit history."""
     limit = max(1, min(limit, 200))
     rows = (
         await db.deposits.find({"user_id": user["id"]}, {"_id": 0})

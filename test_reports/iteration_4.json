@@ -1,0 +1,30 @@
+{
+  "summary": "Phase 2 Step 1b multi-chain (ETH L1 + BNB Chain + Polygon PoS) end-to-end verified. 34/34 pytest cases pass (17 regression + 17 watcher/multi-chain). Frontend UI verified against live REACT_APP_BACKEND_URL: 8 assets in coin selector (no LTC/DOGE), DepositModal has all 8 tabs, USDT shows 3-network picker (eth/bnb/polygon), USDC shows 2 (eth/polygon, no bnb), BTC/SOL/GRAM show no picker + pending banner, EVM address IDENTICAL across ETH/BNB/POL for a given user (0xfBc2cfAD918EaB278a442531903AbB9627A7C469). Backend logs confirm: ETH watcher live (periodic 200 OK to eth-mainnet.g.alchemy.com), BNB and Polygon watchers each emit 'network not enabled ... HTTP 403' warning and then disable after 3 consecutive 403s. _classify_transfer verified for eth/bnb/polygon (native + USDC + USDT variants + wrong-contract-on-wrong-chain isolation). End-to-end _credit_deposit verified: USDT-on-Ethereum + USDT-on-Polygon credited to SAME single balance (chain-agnostic), replay is idempotent, db.deposits stores asset+chain+chain_id, /api/wallet/deposits API returns these fields.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_watcher.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "wallet.py NETWORKS list has USDT-on-BNB marked with 18 decimals implicitly (asset spec decimals=6 for USDT applies to ETH+Polygon). Since Alchemy pre-normalises values this is fine, but if any manual decimal math is added later (e.g. minimum-deposit check pre-format) it will need per-network decimals overrides.",
+    "watcher._chain_loop: on the very first 403 we log a WARNING, and on the 3rd we log another WARNING then return — but if the app later reboots and the RPC is still 403, we silently disable again with no way for the UI or the user to know. Consider persisting a chain 'disabled' flag in db.system that /api/config surfaces so the frontend can render an 'operator: enable BNB/Polygon in Alchemy dashboard' banner.",
+    "watcher._chain_loop swallows non-HTTPStatusError exceptions in a broad except; combined with 20s sleep this can mask real bugs. Add consecutive-generic-error counter mirroring the 403 handling.",
+    "server.py still contains a legacy string in /api/faucet/claim referencing 'BTC / ETH (Base) / USDC / USDT / BNB / SOL / GRAM' — Base is dead, and POL is missing. Update the copy.",
+    "/api/config exposes 'coins' (array) AND 'assets' (dict) — the array is redundant since assets keys already list them. Frontend Header uses a hardcoded local COINS list rather than /api/config.coins; if you drop 'coins' from the API, verify no consumer breaks.",
+    "server.py is 680 lines — extract /api/wallet/*, /api/dice, /api/bets into separate routers before Phase 2 Step 2 (withdrawal signer)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_watcher.py",
+    "/app/test_reports/iteration_4.json"
+  ],
+  "success_rate": {"backend": "100% (34/34)", "frontend": "100% (all UI checks pass)"},
+  "test_credentials": "Self-registered TEST_<rand> and UI<rand> users via /api/auth/register.",
+  "seed_data_creation": "Tests insert TEST_watcher_<rand> fake user (wallet_index=999998) + 2 fake deposit docs; cleaned in fixture teardown. Also one seeded USDT-Polygon deposit doc for /api/wallet/deposits shape test; cleaned in teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && python -m pytest tests/ -v --asyncio-mode=auto --junitxml=/app/test_reports/pytest/pytest_results.xml. Notes: (1) BNB and Polygon watchers will remain disabled with 3x 403 warning until the user enables those networks in the Alchemy dashboard for the shared API key — this is EXPECTED, not a bug. (2) Register form has NO name= attributes on inputs — use query_selector_all('input') and fill by index [username, email, password, confirm-password]. (3) REACT_APP_BACKEND_URL = https://vintage-dice-hub.preview.emergentagent.com. (4) EVM address for a given user is IDENTICAL across ETH/BNB/POL/USDC/USDT — do not treat this as duplicate data. (5) Do NOT delete db.deposits or db.system.<chain>_last_block."
+}
