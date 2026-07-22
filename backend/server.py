@@ -442,9 +442,9 @@ async def faucet_claim(user=Depends(get_current_user)):
         status_code=400,
         detail=(
             "Faucet disabled — BetterDice is real-crypto only. "
-            "Deposit BTC / ETH (Base) / USDC / USDT / BNB / SOL / GRAM at "
+            "Deposit BTC / ETH / USDC / USDT / BNB / POL / SOL / GRAM at "
             "/api/wallet/addresses. A daily faucet for the upcoming BetterDice "
-            "token will launch once the ERC-20 is deployed on Base."
+            "token will launch once the ERC-20 is deployed on Ethereum."
         ),
     )
 
