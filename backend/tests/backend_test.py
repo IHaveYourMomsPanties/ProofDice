@@ -21,12 +21,12 @@ def _load_frontend_url():
 BASE_URL = _load_frontend_url().rstrip("/")
 API = f"{BASE_URL}/api"
 
-EXPECTED_COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "POL", "SOL", "GRAM"]
+EXPECTED_COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "POL", "SOL", "GRAM", "SEPETH"]
 
 # aggregate `wired` per asset (any network wired -> asset wired)
 EXPECTED_WIRED = {
     "BTC": False, "ETH": True, "USDC": True, "USDT": True,
-    "BNB": True, "POL": True, "SOL": False, "GRAM": False,
+    "BNB": True, "POL": True, "SOL": False, "GRAM": False, "SEPETH": True,
 }
 
 BECH32_RE = re.compile(r"^bc1[a-z0-9]{20,90}$")
@@ -87,17 +87,17 @@ def test_config_networks_list():
     j = requests.get(f"{API}/config").json()
     nets = j["networks"]
     assert isinstance(nets, list)
-    assert len(nets) == 11, f"expected 11 network entries, got {len(nets)}"
+    assert len(nets) == 12, f"expected 12 network entries, got {len(nets)}"
 
     # Build (asset, chain_id) -> wired map
     pairs = {(n["asset"], n["chain_id"]): n["wired"] for n in nets}
 
-    # Wired subset (8): ETH-eth, USDC-eth, USDC-polygon, USDT-eth, USDT-bnb,
-    # USDT-polygon, BNB-bnb, POL-polygon
+    # Wired subset (9): ETH-eth, USDC-eth, USDC-polygon, USDT-eth, USDT-bnb,
+    # USDT-polygon, BNB-bnb, POL-polygon, SEPETH-sepolia
     wired_expected = {
         ("ETH", "eth"), ("USDC", "eth"), ("USDC", "polygon"),
         ("USDT", "eth"), ("USDT", "bnb"), ("USDT", "polygon"),
-        ("BNB", "bnb"), ("POL", "polygon"),
+        ("BNB", "bnb"), ("POL", "polygon"), ("SEPETH", "sepolia"),
     }
     for key in wired_expected:
         assert pairs.get(key) is True, f"{key} should be wired=True"
@@ -161,6 +161,7 @@ def test_wallet_addresses_shape_and_formats(user_a):
     assert len(assets["POL"]["networks"]) == 1
     assert len(assets["SOL"]["networks"]) == 1
     assert len(assets["GRAM"]["networks"]) == 1
+    assert len(assets["SEPETH"]["networks"]) == 1
 
     # Verify network entry fields
     for row in j["assets"]:
@@ -182,7 +183,7 @@ def test_wallet_addresses_shape_and_formats(user_a):
 
     # All EVM addresses (ETH, BNB, POL, all USDC nets, all USDT nets) IDENTICAL for same user
     evm_addresses = set()
-    for code in ("ETH", "USDC", "USDT", "BNB", "POL"):
+    for code in ("ETH", "USDC", "USDT", "BNB", "POL", "SEPETH"):
         for n in assets[code]["networks"]:
             if n["addr_kind"] == "evm":
                 assert EVM_RE.match(n["address"]), f"{code}/{n['chain']} not EVM: {n['address']}"
@@ -282,3 +283,113 @@ def test_chat_flow(user_a):
     r2 = requests.get(f"{API}/chat/messages")
     assert r2.status_code == 200
     assert any(m["message"] == msg for m in r2.json())
+
+
+
+# ---------------- SEPETH test-coin faucet ----------------
+def _mongo():
+    import pymongo
+    env = {}
+    for line in open("/app/backend/.env"):
+        line = line.strip()
+        if "=" in line and not line.startswith("#"):
+            k, v = line.split("=", 1)
+            env[k] = v.strip().strip('"').strip("'")
+    m = pymongo.MongoClient(env["MONGO_URL"])
+    return m[env["DB_NAME"]]
+
+
+def test_test_faucet_requires_auth():
+    r = requests.post(f"{API}/faucet/test-claim")
+    assert r.status_code == 401
+
+
+def test_test_faucet_credits_and_cooldown_and_roll():
+    # fresh user so we know cooldown state
+    u = _register()
+    h = auth_headers(u)
+
+    # 1st claim -> ok, +0.01 SEPETH
+    r1 = requests.post(f"{API}/faucet/test-claim", headers=h)
+    assert r1.status_code == 200, r1.text
+    j1 = r1.json()
+    assert j1["ok"] is True
+    assert j1["coin"] == "SEPETH"
+    assert j1["credited"] == 0.01
+    assert j1["cooldown_s"] == 60
+    assert abs(j1["balance"] - 0.01) < 1e-9
+
+    # 2nd claim immediately -> 429
+    r2 = requests.post(f"{API}/faucet/test-claim", headers=h)
+    assert r2.status_code == 429, r2.text
+    assert "cooldown" in r2.text.lower() or "try again" in r2.text.lower()
+
+    # Rewind last_test_faucet to simulate >60s elapsed
+    db = _mongo()
+    from datetime import datetime, timezone, timedelta
+    past = (datetime.now(timezone.utc) - timedelta(seconds=120)).isoformat()
+    db.users.update_one({"id": u["user"]["id"]}, {"$set": {"last_test_faucet": past}})
+
+    # 3rd claim succeeds -> balance now 0.02
+    r3 = requests.post(f"{API}/faucet/test-claim", headers=h)
+    assert r3.status_code == 200, r3.text
+    j3 = r3.json()
+    assert abs(j3["balance"] - 0.02) < 1e-9
+
+    # SEPETH is spendable via /dice/roll
+    r4 = requests.post(
+        f"{API}/dice/roll",
+        headers=h,
+        json={"coin": "SEPETH", "amount": 0.001, "target": 50, "direction": "under"},
+    )
+    assert r4.status_code == 200, r4.text
+    j4 = r4.json()
+    assert j4["coin"] == "SEPETH"
+    assert "roll" in j4
+    assert 0 <= j4["roll"] <= 99.99
+    assert "balance_after" in j4
+    # provably-fair fields
+    for k in ("server_seed_hashed", "client_seed", "nonce"):
+        assert k in j4, f"missing PF field {k}"
+
+
+def test_config_includes_sepeth_asset():
+    j = requests.get(f"{API}/config").json()
+    assert "SEPETH" in j["coins"]
+    assert "SEPETH" in j["assets"]
+    a = j["assets"]["SEPETH"]
+    assert a["code"] == "SEPETH"
+    assert a["wired"] is True
+
+
+def test_wallet_addresses_sepeth_matches_eth(user_a):
+    r = requests.get(f"{API}/wallet/addresses", headers=auth_headers(user_a)).json()
+    assets = {row["asset"]: row for row in r["assets"]}
+    sep = assets["SEPETH"]["networks"]
+    assert len(sep) == 1
+    net = sep[0]
+    assert net["chain"] == "Ethereum Sepolia"
+    assert net["chain_id"] == "sepolia"
+    assert net["wired"] is True
+    assert net["addr_kind"] == "evm"
+    # SEPETH address equals ETH address (same EVM derivation)
+    eth_addr = assets["ETH"]["networks"][0]["address"].lower()
+    assert net["address"].lower() == eth_addr
+
+
+def test_watcher_started_sepolia_chain():
+    # Read supervisor backend log for evidence sepolia RPC is being called
+    log_paths = [
+        "/var/log/supervisor/backend.err.log",
+        "/var/log/supervisor/backend.out.log",
+    ]
+    text = ""
+    for p in log_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", errors="ignore") as f:
+                    text += f.read()[-200_000:]
+            except Exception:
+                pass
+    assert "eth-sepolia.g.alchemy.com" in text, \
+        "Sepolia watcher never called Alchemy RPC — chain not started?"

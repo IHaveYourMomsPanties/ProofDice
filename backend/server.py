@@ -22,6 +22,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
+from pymongo import ReturnDocument
 from starlette.middleware.cors import CORSMiddleware
 
 from wallet import (  # noqa: E402
@@ -447,6 +448,50 @@ async def faucet_claim(user=Depends(get_current_user)):
             "token will launch once the ERC-20 is deployed on Ethereum."
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Test-coin instant faucet — credits SEPETH straight to the internal balance
+# so operators / QA / casual visitors can do fast test rolls without going
+# through an external Sepolia faucet + 12-block confirmation wait. Amounts
+# are TEST tokens only; SEPETH has zero real-world value.
+# ---------------------------------------------------------------------------
+TEST_FAUCET_AMOUNT = 0.01           # 0.01 SEPETH per claim
+TEST_FAUCET_COOLDOWN_S = 60         # 1-minute cooldown per user
+
+
+@api.post("/faucet/test-claim")
+async def faucet_test_claim(user=Depends(get_current_user)):
+    now = datetime.now(timezone.utc)
+    last = user.get("last_test_faucet")
+    if last:
+        try:
+            last_dt = datetime.fromisoformat(last)
+            elapsed = (now - last_dt).total_seconds()
+            if elapsed < TEST_FAUCET_COOLDOWN_S:
+                remaining = int(TEST_FAUCET_COOLDOWN_S - elapsed)
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Cooldown — try again in {remaining}s",
+                )
+        except ValueError:
+            pass
+
+    updated = await db.users.find_one_and_update(
+        {"id": user["id"]},
+        {
+            "$inc": {"balances.SEPETH": TEST_FAUCET_AMOUNT},
+            "$set": {"last_test_faucet": now.isoformat()},
+        },
+        return_document=ReturnDocument.AFTER,
+    )
+    return {
+        "ok": True,
+        "coin": "SEPETH",
+        "credited": TEST_FAUCET_AMOUNT,
+        "balance": (updated or {}).get("balances", {}).get("SEPETH", 0.0),
+        "cooldown_s": TEST_FAUCET_COOLDOWN_S,
+    }
 
 
 # ---------------------------------------------------------------------------

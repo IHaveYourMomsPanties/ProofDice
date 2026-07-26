@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, ShieldAlert, Wallet as WalletIcon } from "lucide-react";
+import { Copy, ShieldAlert, Wallet as WalletIcon, Gift } from "lucide-react";
 import { toast } from "sonner";
 
 const COIN_COLOR = {
@@ -20,6 +21,7 @@ const COIN_COLOR = {
   POL: "#8247e5",
   SOL: "#14f195",
   GRAM: "#0098ea",
+  SEPETH: "#8b98d6",
 };
 
 function CoinGlyph({ coin, size = 22 }) {
@@ -51,10 +53,25 @@ function QRImage({ text }) {
 }
 
 export default function DepositModal({ open, onOpenChange, initialCoin = "ETH" }) {
+  const { refresh } = useAuth();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState(initialCoin);
   const [networkByAsset, setNetworkByAsset] = useState({}); // assetCode -> chain_id
+  const [claiming, setClaiming] = useState(false);
+
+  const claimTestCoins = async () => {
+    setClaiming(true);
+    try {
+      const { data } = await api.post("/faucet/test-claim");
+      toast.success(`+${data.credited} SEPETH credited — total ${data.balance.toFixed(6)}`);
+      await refresh();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Faucet cooldown");
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -133,6 +150,38 @@ export default function DepositModal({ open, onOpenChange, initialCoin = "ETH" }
 
             {assets.map((a) => (
               <TabsContent value={a.asset} key={a.asset} className="mt-4">
+                {a.asset === "SEPETH" && (
+                  <div
+                    className="rounded-2xl p-4 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                    style={{ background: "linear-gradient(135deg,#e4ecfa,#f5e6ff)" }}
+                    data-testid="test-faucet-card"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0">
+                        <Gift className="w-5 h-5 text-[color:var(--sd-purple-deep)]" />
+                      </div>
+                      <div>
+                        <div className="font-black tracking-widest text-xs uppercase text-[color:var(--sd-purple-deep)]">
+                          Instant test faucet
+                        </div>
+                        <div className="text-sm text-[color:#2b2540] mt-0.5">
+                          Get <b>0.01 SEPETH</b> credited straight to your balance —
+                          no wallet, no gas, 1-minute cooldown. Perfect for
+                          quick test rolls.
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={claimTestCoins}
+                      disabled={claiming}
+                      data-testid="test-faucet-claim"
+                      className="rounded-full px-5 py-2.5 text-xs font-black tracking-widest bg-[color:var(--sd-purple)] hover:bg-[color:var(--sd-purple-dark)] text-white shrink-0 disabled:opacity-60"
+                    >
+                      {claiming ? "..." : "CLAIM 0.01 SEPETH"}
+                    </button>
+                  </div>
+                )}
+
                 {/* Network sub-selector, only when there's more than one option */}
                 {a.networks.length > 1 && (
                   <div className="mb-3">

@@ -51,17 +51,23 @@ class AssetSpec:
     decimals: int
     color: str
     min_bet: float
+    is_test: bool = False
 
 
 ASSETS: dict[str, AssetSpec] = {
-    "BTC":  AssetSpec("BTC",  "Bitcoin",   8,  "#f7931a", 0.00000001),
-    "ETH":  AssetSpec("ETH",  "Ethereum", 18,  "#627eea", 0.00001),
-    "USDC": AssetSpec("USDC", "USD Coin",  6,  "#2775ca", 0.01),
-    "USDT": AssetSpec("USDT", "Tether",    6,  "#26a17b", 0.01),
-    "BNB":  AssetSpec("BNB",  "BNB",      18,  "#f3ba2f", 0.0001),
-    "POL":  AssetSpec("POL",  "Polygon",  18,  "#8247e5", 0.01),
-    "SOL":  AssetSpec("SOL",  "Solana",    9,  "#14f195", 0.0001),
-    "GRAM": AssetSpec("GRAM", "Gram",      9,  "#0098ea", 0.01),
+    "BTC":    AssetSpec("BTC",    "Bitcoin",         8,  "#f7931a", 0.00000001),
+    "ETH":    AssetSpec("ETH",    "Ethereum",       18,  "#627eea", 0.00001),
+    "USDC":   AssetSpec("USDC",   "USD Coin",        6,  "#2775ca", 0.01),
+    "USDT":   AssetSpec("USDT",   "Tether",          6,  "#26a17b", 0.01),
+    "BNB":    AssetSpec("BNB",    "BNB",            18,  "#f3ba2f", 0.0001),
+    "POL":    AssetSpec("POL",    "Polygon",        18,  "#8247e5", 0.01),
+    "SOL":    AssetSpec("SOL",    "Solana",          9,  "#14f195", 0.0001),
+    "GRAM":   AssetSpec("GRAM",   "Gram",            9,  "#0098ea", 0.01),
+    # ------------------------------------------------------------------
+    # Test coin — Sepolia ETH. Free from any Sepolia faucet.
+    # Behaves exactly like a real EVM asset; useful for QA and demos.
+    # ------------------------------------------------------------------
+    "SEPETH": AssetSpec("SEPETH", "Sepolia ETH",    18,  "#8b98d6", 0.00001, is_test=True),
 }
 SUPPORTED_COINS: list[str] = list(ASSETS.keys())
 
@@ -125,6 +131,9 @@ NETWORKS: list[NetworkSpec] = [
     # SOL & GRAM & (BTC) — not yet wired
     NetworkSpec("SOL",  "Solana", "sol", "sol", None, wired=False, min_deposit=0.02),
     NetworkSpec("GRAM", "TON",    "ton", "ton", None, wired=False, min_deposit=1.0),
+
+    # Test coin — Sepolia (Ethereum testnet). Uses same EVM derivation as ETH mainnet.
+    NetworkSpec("SEPETH", "Ethereum Sepolia", "sepolia", "evm", None, wired=True, min_deposit=0.0001),
 ]
 
 

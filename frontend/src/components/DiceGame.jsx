@@ -50,6 +50,7 @@ export default function DiceGame({ activeCoin, onNewBet }) {
       POL: 1,
       SOL: 0.05,
       GRAM: 1,
+      SEPETH: 0.0001,
     };
     setAmount(defaults[activeCoin] ?? 0.001);
   }, [activeCoin]);
@@ -138,6 +139,26 @@ export default function DiceGame({ activeCoin, onNewBet }) {
   const minBet = () => setAmount(activeCoin === "GRAM" || activeCoin === "USDC" || activeCoin === "USDT" ? 0.01 : 0.00000001);
   const maxBet = () => setAmount(+(user?.balances?.[activeCoin] ?? 0));
 
+  const [claimingTest, setClaimingTest] = useState(false);
+  const claimTest = async () => {
+    setClaimingTest(true);
+    try {
+      const { data } = await api.post("/faucet/test-claim");
+      setUser({
+        ...user,
+        balances: { ...user.balances, SEPETH: data.balance },
+      });
+      toast.success(`+${data.credited} SEPETH credited`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Try again in a moment");
+    } finally {
+      setClaimingTest(false);
+    }
+  };
+
+  const showTestFaucetShortcut =
+    user && activeCoin === "SEPETH" && (user?.balances?.SEPETH ?? 0) < 0.0001;
+
   return (
     <div className="sd-panel p-4 md:p-6" data-testid="dice-game">
       {/* Roll history */}
@@ -174,6 +195,29 @@ export default function DiceGame({ activeCoin, onNewBet }) {
           state={rolling ? "rolling" : displayState}
         />
       </div>
+
+      {showTestFaucetShortcut && (
+        <div
+          className="mt-3 rounded-2xl p-3 flex items-center justify-between gap-3"
+          style={{ background: "linear-gradient(135deg,#e4ecfa,#f5e6ff)" }}
+          data-testid="test-faucet-shortcut"
+        >
+          <div className="text-xs md:text-sm text-[color:var(--sd-purple-deep)] font-bold">
+            Need some SEPETH to roll?{" "}
+            <span className="text-muted-foreground font-normal">
+              Free test coins — no wallet needed.
+            </span>
+          </div>
+          <button
+            onClick={claimTest}
+            disabled={claimingTest}
+            data-testid="test-faucet-shortcut-claim"
+            className="rounded-full px-4 py-2 text-[11px] font-black tracking-widest bg-[color:var(--sd-purple)] hover:bg-[color:var(--sd-purple-dark)] text-white shrink-0 disabled:opacity-60"
+          >
+            {claimingTest ? "..." : "GET 0.01 SEPETH"}
+          </button>
+        </div>
+      )}
 
       {/* Under / Over */}
       <div className="grid grid-cols-2 gap-3 mt-4">

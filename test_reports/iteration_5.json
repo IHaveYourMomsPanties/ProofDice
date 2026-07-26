@@ -1,0 +1,29 @@
+{
+  "summary": "Verified SEPETH test-coin instant faucet fix end-to-end. Backend: 39/39 pytest cases pass (17 watcher + 22 backend_test.py, added 5 new SEPETH/faucet tests + updated coin/network count expectations from 8/11 to 9/12). New /api/faucet/test-claim endpoint credits 0.01 SEPETH, enforces 60s cooldown (HTTP 429), post-cooldown claim succeeds after rewinding last_test_faucet in Mongo, SEPETH is spendable via /api/dice/roll with proper provably-fair fields, /api/config exposes SEPETH asset+coin, /api/wallet/addresses returns SEPETH on Ethereum Sepolia (chain_id=sepolia, addr_kind=evm, wired=true) with address identical to the user's ETH address. Sepolia watcher confirmed started (Alchemy sepolia RPC calls present in supervisor log). Frontend: Fresh registration then DepositModal SEPETH tab renders test-faucet-card; ETH tab does NOT render it; clicking test-faucet-claim credits 0.01 (header chip updates to 0.01 SEPETH); immediate 2nd click yields visible 429 cooldown toast. Header coin selector switches active coin to SEPETH; DiceGame's test-faucet-shortcut appears for a fresh user (0 balance) and disappears after clicking test-faucet-shortcut-claim; ROLL succeeds against SEPETH and displays a WIN/LOSS toast with a numeric roll on the digital display.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_watcher.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py /api/faucet/test-claim: last_test_faucet is stored as ISO string; using an ISO parse+try/except is defensive but any parse failure silently allows unlimited claims. Consider storing as native datetime (motor handles it) or rejecting malformed values instead of falling through.",
+    "server.py: /api/faucet/claim still returns 400 with legacy copy referencing 'BTC / ETH (Base) / USDC / USDT / BNB / SOL / GRAM' — should now also mention SEPETH test-coin faucet path and drop 'Base'.",
+    "watcher.py: sepolia chain hits shared 429 rate-limits with mainnet on the same Alchemy free-tier key (visible in backend.err.log). Not a bug but observable: consider a per-chain min-poll-interval or upgrading the RPC key when Sepolia deposits become a supported feature.",
+    "DepositModal: after successful faucet claim the modal stays open; consider auto-closing or focusing the ROLL CTA to reduce user friction, since the shortcut CTA in DiceGame already handles the in-game path.",
+    "server.py is now 725 lines — still worth extracting /api/wallet/*, /api/dice, /api/bets, /api/faucet into separate routers before Phase 2 Step 2."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/iteration_5.json"
+  ],
+  "success_rate": {"backend": "100% (39/39)", "frontend": "100% (both faucet paths + roll verified)"},
+  "test_credentials": "Self-registered UI_<rand> and UI2_<rand> users via /api/auth/register during Playwright runs.",
+  "seed_data_creation": "test_test_faucet_credits_and_cooldown_and_roll creates a fresh user, then directly rewinds users.last_test_faucet in Mongo by 120s to test post-cooldown behaviour without a real 60s wait. Test data uses TEST_-prefixed users so it is trivially cleanable but is not explicitly torn down.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suite now 39 tests: cd /app/backend && python -m pytest tests/ -v --asyncio-mode=auto --junitxml=/app/test_reports/pytest/pytest_results.xml. Cooldown = 60s per user; tests manipulate users.last_test_faucet to bypass wait. Sepolia watcher shares Alchemy rate limits with mainnet/bnb/polygon — expect intermittent 429 traces in backend.err.log which are non-fatal. REACT_APP_BACKEND_URL = https://vintage-dice-hub.preview.emergentagent.com. Register form order: [username, email, password, confirm].",
+  "rca of the issue": "Bug: user 'trying to do a couple of test rolls' could not — (1) backend had SEPETH added to wallet.py/watcher.py but wasn't restarted so /api/dice/roll rejected SEPETH as unsupported; (2) users started with 0 SEPETH and no easy way to get test funds. Fix verified: new POST /api/faucet/test-claim credits 0.01 SEPETH instantly with 60s cooldown; Header + DepositModal + DiceGame all expose CTAs (deposit-tab-sepeth+test-faucet-claim and DiceGame's test-faucet-shortcut/test-faucet-shortcut-claim); SEPETH balance is now recognised by /api/dice/roll and rolls succeed with correct provably-fair output."
+}

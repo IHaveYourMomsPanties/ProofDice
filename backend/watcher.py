@@ -60,9 +60,10 @@ def _mk_chain(chain_id: str, rpc_env: str, native_asset: str, label: str) -> Opt
 
 def _build_chains() -> list[dict]:
     chains = [
-        _mk_chain("eth",     "ALCHEMY_ETH_RPC",     "ETH", "Ethereum"),
-        _mk_chain("bnb",     "ALCHEMY_BNB_RPC",     "BNB", "BNB Chain"),
-        _mk_chain("polygon", "ALCHEMY_POLYGON_RPC", "POL", "Polygon"),
+        _mk_chain("eth",     "ALCHEMY_ETH_RPC",     "ETH",    "Ethereum"),
+        _mk_chain("bnb",     "ALCHEMY_BNB_RPC",     "BNB",    "BNB Chain"),
+        _mk_chain("polygon", "ALCHEMY_POLYGON_RPC", "POL",    "Polygon"),
+        _mk_chain("sepolia", "ALCHEMY_SEPOLIA_RPC", "SEPETH", "Ethereum Sepolia"),
     ]
     return [c for c in chains if c]
 

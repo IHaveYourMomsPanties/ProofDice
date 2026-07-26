@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User as UserIcon, Wallet, ChevronDown, ArrowDownToLine } from "lucide-react";
 
-const COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "POL", "SOL", "GRAM"];
+const COINS = ["BTC", "ETH", "USDC", "USDT", "BNB", "POL", "SOL", "GRAM", "SEPETH"];
 const COIN_COLOR = {
   BTC: "#f7931a",
   ETH: "#627eea",
@@ -23,6 +23,7 @@ const COIN_COLOR = {
   POL: "#8247e5",
   SOL: "#14f195",
   GRAM: "#0098ea",
+  SEPETH: "#8b98d6",
 };
 
 function CoinGlyph({ coin }) {
