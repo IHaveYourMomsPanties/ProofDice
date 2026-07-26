@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only verification of the DepositModal close-affordance fix. Tested at mobile viewport 390x844 (iPhone 14 Pro) and desktop 1400x900. Registered a fresh user, opened the deposit modal via user-menu-deposit (mobile) and deposit-button (desktop), and confirmed the modal unmounts (data-testid='deposit-modal' count == 0) via all 4 close methods: new 40x40 top-right X button (deposit-close-button), full-width sticky DONE button (deposit-done-button), Escape key, and outside/overlay click. Also verified DialogContent has overflow-y:auto and DONE button reaches viewport after scrolling to the bottom of the tallest tab (SEPETH, with test-faucet-card). No leftover Radix overlay left in DOM after close. Modal reopens cleanly after each close cycle.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Header (mobile 390px)", "issues": ["The primary data-testid='deposit-button' is class 'hidden sm:inline-flex' so it is NOT visible on iPhone-width viewports. Mobile users can only reach the deposit modal via the user avatar dropdown > 'Deposit crypto' (data-testid='user-menu-deposit'). This is not part of the current fix scope but is worth surfacing: the review request literally says 'open the deposit modal via data-testid=deposit-button', which is impossible on mobile as coded. Consider exposing a compact deposit CTA in the mobile header, or removing the sm: breakpoint gate."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Optional / not blocking) Make the header deposit CTA reachable on mobile without opening the user menu — the reported user is on iPhone. Currently the only entry point on mobile is the user-menu-deposit item."
+  ],
+  "critical_code_review_comments": [
+    "DepositModal.jsx: the explicit DialogClose (deposit-close-button) is rendered before DialogHeader inside DialogContent. shadcn's default 16px X is still emitted by dialog.jsx underneath. Two stacked close buttons in the same corner is functionally fine (both close), but z-10 on ours plus the default's z-index means both are technically hit-testable; the default may still be tab-focusable and cause a duplicate 'Close' in screen-reader tab order. Consider passing showCloseButton={false} or removing the default X in the shared Dialog component when a custom close is provided.",
+    "The 'DONE' bottom bar is inside the scrollable DialogContent, so it is NOT actually sticky — it sits at the end of scroll content. Works because overflow-y-auto + max-h-[92vh] guarantees you can always scroll to reach it, but the code comment 'Sticky bottom Done bar' is misleading. If a real sticky bar is desired, wrap it in position:sticky bottom-0 with a bg so it always overlays content."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (not tested this iteration)", "frontend": "100% (6/6 close scenarios pass on mobile+desktop)"},
+  "test_credentials": "Self-registered ephemeral users tester{ts}@test.com / Password123!",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "iteration_8 verified fix for deposit-modal-stuck-on-mobile. All four close methods (deposit-close-button, deposit-done-button, Escape, overlay pointerdown-outside) unmount the modal on both 390x844 and 1400x900. overflow-y is 'auto' on DialogContent. test-faucet-card still renders on the SEPETH tab. No leftover [data-radix-dialog-overlay] in DOM after close. NOTE: mobile users cannot use data-testid='deposit-button' — it is hidden by 'hidden sm:inline-flex'; use 'user-menu-trigger' -> 'user-menu-deposit' to open on mobile. Also the Radix DropdownMenu trigger requires pointerdown (not just click) to open; use page.evaluate to dispatch a full pointer sequence if page.tap isn't available (default Playwright context has no touch).",
+  "rca of the issue": "Original bug: shadcn Dialog's default 16px 70%-opacity X in the top-right was visually hidden behind the QR image on ~390px viewports, so mobile users had no visible way to close the deposit modal. Fix in DepositModal.jsx adds (1) an explicit 40x40 DialogClose with lavender bg + X icon at absolute right-3 top-3 z-10 (data-testid='deposit-close-button'), (2) a full-width purple DONE DialogClose at the bottom (data-testid='deposit-done-button'), and (3) max-h-[92vh] overflow-y-auto on DialogContent so long content doesn't push the DONE button off-screen. Verified: both new controls are hit-testable at 390x844, unmount the modal, Escape + outside-click still work, no ghost overlay remains."
+}

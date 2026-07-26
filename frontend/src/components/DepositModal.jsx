@@ -7,9 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Copy, ShieldAlert, Wallet as WalletIcon, Gift } from "lucide-react";
+import { Copy, ShieldAlert, Wallet as WalletIcon, Gift, X } from "lucide-react";
 import { toast } from "sonner";
 
 const COIN_COLOR = {
@@ -116,8 +117,21 @@ export default function DepositModal({ open, onOpenChange, initialCoin = "ETH" }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl" data-testid="deposit-modal">
-        <DialogHeader>
+      <DialogContent
+        className="max-w-2xl max-h-[92vh] overflow-y-auto p-4 md:p-6"
+        data-testid="deposit-modal"
+      >
+        {/* Big, obvious close button — the default 16px X in shadcn is
+            near-invisible on mobile behind the QR image. */}
+        <DialogClose
+          data-testid="deposit-close-button"
+          aria-label="Close"
+          className="absolute right-3 top-3 z-10 w-10 h-10 rounded-full bg-[color:var(--sd-lavender)] hover:bg-[color:var(--sd-lavender-2)] flex items-center justify-center text-[color:var(--sd-purple-deep)] focus:outline-none focus:ring-2 focus:ring-[color:var(--sd-purple)]"
+        >
+          <X className="w-5 h-5" />
+        </DialogClose>
+
+        <DialogHeader className="pr-12">
           <DialogTitle className="flex items-center gap-2 text-[color:var(--sd-purple-deep)]">
             <WalletIcon className="w-5 h-5" />
             Deposit real crypto
@@ -288,6 +302,18 @@ export default function DepositModal({ open, onOpenChange, initialCoin = "ETH" }
             ))}
           </Tabs>
         )}
+
+        {/* Sticky bottom Done bar — always visible on mobile scroll */}
+        <div className="pt-4 mt-2 border-t border-[color:var(--sd-lavender-2)] flex justify-end">
+          <DialogClose asChild>
+            <button
+              data-testid="deposit-done-button"
+              className="rounded-full px-6 py-3 bg-[color:var(--sd-purple)] hover:bg-[color:var(--sd-purple-dark)] text-white font-black tracking-widest text-sm w-full md:w-auto"
+            >
+              DONE
+            </button>
+          </DialogClose>
+        </div>
       </DialogContent>
     </Dialog>
   );
