@@ -72,14 +72,17 @@ export default function Header({ activeCoin, setActiveCoin }) {
           </span>
         </Link>
 
-        {/* Balance + coin selector */}
+        {/* Balance + coin selector — same on mobile & desktop */}
         <div className="flex items-center gap-2 ml-1">
           <div
-            className="hidden md:flex items-center gap-3 bg-white/10 rounded-full pl-2 pr-1 py-1"
+            className="flex items-center gap-2 md:gap-3 bg-white/10 rounded-full pl-2 pr-1 py-1"
             data-testid="header-balance"
           >
             <CoinGlyph coin={activeCoin} />
-            <span className="font-seg text-white text-lg" style={{ letterSpacing: "0.06em" }}>
+            <span
+              className="font-seg text-white text-sm md:text-lg"
+              style={{ letterSpacing: "0.06em" }}
+            >
               {fmt(balance)}
             </span>
             <DropdownMenu>
@@ -89,7 +92,7 @@ export default function Header({ activeCoin, setActiveCoin }) {
               >
                 {activeCoin} <ChevronDown className="w-4 h-4" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" data-testid="coin-selector-menu">
+              <DropdownMenuContent align="end" data-testid="coin-selector-menu" className="max-h-[70vh] overflow-y-auto">
                 <DropdownMenuLabel>Select coin</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {COINS.map((c) => (
@@ -108,12 +111,6 @@ export default function Header({ activeCoin, setActiveCoin }) {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-
-          {/* Mobile: compact balance chip */}
-          <div className="md:hidden flex items-center gap-2 bg-white/12 rounded-full px-2 py-1">
-            <CoinGlyph coin={activeCoin} />
-            <span className="font-seg text-white text-sm">{fmt(balance)}</span>
           </div>
         </div>
 
