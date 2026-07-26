@@ -4,6 +4,7 @@ Provably-fair dice roll engine + JWT auth + demo-money balances + bet history + 
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -425,6 +426,74 @@ async def login(body: LoginIn):
 @api.get("/auth/me", response_model=UserPublic)
 async def me(user=Depends(get_current_user)):
     return to_user_public(user)
+
+
+# ---------------------------------------------------------------------------
+# Password reset
+# ---------------------------------------------------------------------------
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str = Field(min_length=8, max_length=256)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+import password_reset as pw_reset  # noqa: E402
+
+
+@api.post("/auth/forgot-password")
+async def forgot_password(body: ForgotPasswordIn):
+    """Always return generic success to avoid email-enumeration."""
+    generic = {
+        "ok": True,
+        "message": (
+            "If an account with that email exists, a password-reset link "
+            "has been sent. Check your inbox (and spam)."
+        ),
+    }
+    email = body.email.lower()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        # Simulate work + return the same response
+        await asyncio.sleep(0.05)
+        return generic
+
+    allowed, remaining = await pw_reset.can_request_reset(db, user)
+    if not allowed:
+        # Still return generic success — the client shouldn't learn timing info,
+        # but the request is quietly dropped.
+        logger.info(
+            "reset cooldown hit for %s (%ss remaining)",
+            user["email"], remaining,
+        )
+        return generic
+
+    raw, token_hash = pw_reset.new_reset_token()
+    await pw_reset.create_reset_record(db, user, token_hash)
+    email_id = await pw_reset.send_reset_email(email, user["username"], raw)
+    if not email_id:
+        logger.warning("reset email failed to send for %s", email)
+    return generic
+
+
+@api.post("/auth/reset-password", response_model=AuthOut)
+async def reset_password(body: ResetPasswordIn):
+    user = await pw_reset.consume_reset_token(db, body.token)
+    if not user:
+        raise HTTPException(400, "Reset link is invalid or has expired. Please request a new one.")
+    new_hash = hash_password(body.new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": new_hash}},
+    )
+    # invalidate any other outstanding reset tokens for this user
+    await db.password_resets.update_many(
+        {"user_id": user["id"], "used_at": None},
+        {"$set": {"used_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return AuthOut(token=create_token(user["id"]), user=to_user_public(user))
 
 
 # ---------------------------------------------------------------------------

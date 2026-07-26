@@ -78,6 +78,16 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className="mt-3 text-center">
+          <Link
+            to="/forgot-password"
+            data-testid={LOGIN.forgotPasswordLink}
+            className="text-sm font-bold text-[color:var(--sd-purple)] hover:underline"
+          >
+            Forgot your password?
+          </Link>
+        </div>
+
         <div className="mt-4 text-center text-sm text-muted-foreground">
           No account?{" "}
           <Link

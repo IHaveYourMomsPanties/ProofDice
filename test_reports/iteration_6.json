@@ -1,0 +1,30 @@
+{
+  "summary": "Verified forgot-password + reset-password flow end-to-end (backend + frontend) and mobile coin-selector fix. Backend: 48/48 pytest cases pass (39 existing + 9 new in tests/test_password_reset.py). New endpoints /api/auth/forgot-password and /api/auth/reset-password behave per spec — generic 200 for unknown emails (no DB row inserted), token_hash-only storage (sha256), 30-min TTL, single-use, 60s per-user cooldown (verified by rewinding last_reset_request via Mongo), mass-invalidation of other outstanding tokens on successful reset, HTTP 400 for unknown/expired/used tokens, 422 for new_password < 6 chars. Resend delivery to the verified recipient (jaxisdax@protonmail.com) succeeded (backend log line 'reset email sent to <addr> id=<uuid>'); sends to random test recipients fail with Resend's testing-mode restriction, as expected. Frontend: /login shows login-forgot-password-link → clicking navigates to /forgot-password; forgot-password-email-input + forgot-password-submit-button submit shows forgot-password-sent block; back-to-login works; /reset-password (no token) shows reset-password-missing-token warning; /reset-password?token=<raw> with a pre-inserted Mongo row logs the user in (sd_token in localStorage, redirect to /, 'Password reset — you're logged in.' toast, subsequent /api/auth/login: old-pw=401, new-pw=200). Coin-selector fix confirmed: at 400x800 (mobile) and 1400x900 (desktop), both header-balance and coin-selector are visible+clickable; dropdown shows all 9 coins including coin-option-sepeth, and selecting SEPETH updates the header chip. All previous regression endpoints still pass unchanged.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_watcher.py",
+    "/app/backend/tests/test_password_reset.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "password_reset.consume_reset_token: expiry is checked AFTER find_one_and_update flips used_at=now, so an expired token is now marked 'used' as a side-effect of a failed reset attempt. Not exploitable (still returns None to the caller), but slightly surprising — consider checking expiry first with find_one, then atomically updating.",
+    "password_reset.can_request_reset does not enforce the cooldown atomically with create_reset_record — two concurrent /forgot-password requests within the same tick could both insert rows. Low risk given the 60s window, but could be tightened with an atomic $set-if condition on last_reset_request.",
+    "forgot_password: even when cooldown is hit for an existing user, response is identical to the success path — good for enumeration safety, but the sleep(0.05) on the missing-user branch is much shorter than the real 'send + DB write' latency, so timing side-channels remain possible. Not a bug, just note.",
+    "SENDER_EMAIL is onboarding@resend.dev (Resend's shared testing sender). While the domain is unverified, only jaxisdax@protonmail.com will actually receive emails — real users signing up will silently NOT get reset links until a domain is verified. Consider surfacing this constraint in .env comments and/or gating /forgot-password behind an env flag until a domain is verified.",
+    "server.py: /api/faucet/claim detail string still lists legacy 'BTC / ETH / USDC / USDT / BNB / POL / SOL / GRAM' — nothing new here since iteration_5, but SEPETH is still not mentioned.",
+    "server.py is now 794 lines (+ password_reset module 169 lines). Auth + password-reset are natural candidates to split into their own router file."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_password_reset.py"
+  ],
+  "success_rate": {"backend": "100% (48/48)", "frontend": "100% (login link, forgot-password submit, missing-token warning, happy-path reset + auto-login, mobile+desktop coin-selector all verified)"},
+  "test_credentials": "Fresh self-registered users per test via /api/auth/register (TEST_pw_<hex> / TEST_e2e_<hex>).",
+  "seed_data_creation": "test_password_reset.py inserts fake db.password_resets rows with sha256(raw) as token_hash to exercise the reset happy path and expired/used branches. The frontend happy-path test uses /tmp/insert_reset.py (non-persistent scratch file) which registers a fresh user via API then writes a single row into db.password_resets before navigating to /reset-password?token=<raw>.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suite = 48 tests: cd /app/backend && python -m pytest tests/ -v --asyncio-mode=auto --junitxml=/app/test_reports/pytest/pytest_results.xml. Password-reset tests bypass the 60s cooldown by rewinding users.last_reset_request in Mongo (same trick as SEPETH faucet). Resend is still in testing mode — only jaxisdax@protonmail.com actually receives emails; look for 'reset email sent to <addr> id=<uuid>' in /var/log/supervisor/backend.err.log. Header 'header-balance' and 'coin-selector' testids are now viewport-agnostic (no more 'hidden md:flex'). REACT_APP_BACKEND_URL = https://vintage-dice-hub.preview.emergentagent.com.",
+  "rca of the issue": "Bug 1 (coin switcher hidden on mobile): the coin selector and balance chip were wrapped in 'hidden md:flex' so at <768px the entire block disappeared. Fix in Header.jsx removed the hidden/md gate, keeping one shared block with the same header-balance + coin-selector testids on all viewports — confirmed at 400x800 and 1400x900. Bug 2 (no forgot-password flow): implemented /api/auth/forgot-password (always-200 generic response, 60s cooldown, sha256 token_hash storage in db.password_resets, 30-min TTL, Resend delivery) and /api/auth/reset-password (atomic single-use consume, mass-invalidates outstanding tokens on success, 400 on unknown/expired/used, 422 on <6-char password). Frontend: /forgot-password + /reset-password pages, plus a 'Forgot your password?' link on /login. All verified with 9 new pytest cases + Playwright e2e run."
+}
