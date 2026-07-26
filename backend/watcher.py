@@ -73,7 +73,23 @@ def _build_chains() -> list[dict]:
 # ---------------------------------------------------------------------------
 CONFIRMATIONS = int(os.environ.get("EVM_CONFIRMATIONS", "12"))
 POLL_SECONDS = int(os.environ.get("WATCHER_POLL_S", "20"))
-INITIAL_LOOKBACK_BLOCKS = int(os.environ.get("WATCHER_INITIAL_LOOKBACK", "300"))
+# When a chain's cursor doesn't exist yet (first-ever scan, or freshly enabled
+# after a config change), how many blocks of history to look back before we
+# start scanning forward. Bigger = better safety against missing deposits sent
+# just before the chain was wired; smaller = fewer initial RPC calls. Default
+# is ~1 day of history on Ethereum (7200 blocks) — most other chains have
+# faster blocks so this covers more calendar time on them (BNB ~6h, Polygon
+# ~4h). Override per chain via WATCHER_INITIAL_LOOKBACK_<chain_id> in env.
+INITIAL_LOOKBACK_BLOCKS = int(os.environ.get("WATCHER_INITIAL_LOOKBACK", "7200"))
+
+
+def _chain_initial_lookback(chain_id: str) -> int:
+    """Per-chain override, falling back to the global default."""
+    key = f"WATCHER_INITIAL_LOOKBACK_{chain_id.upper()}"
+    raw = os.environ.get(key)
+    if raw and raw.isdigit():
+        return int(raw)
+    return INITIAL_LOOKBACK_BLOCKS
 
 
 # ---------------------------------------------------------------------------
@@ -154,9 +170,12 @@ async def _get_last_block(db, chain_id: str, rpc: AlchemyRPC) -> int:
     if doc:
         return int(doc["value"])
     head = await rpc.block_number()
-    start = max(0, head - INITIAL_LOOKBACK_BLOCKS)
+    start = max(0, head - _chain_initial_lookback(chain_id))
     await db.system.update_one({"_id": key}, {"$set": {"value": start}}, upsert=True)
-    logger.info("watcher init [%s]: last_block=%d (head=%d)", chain_id, start, head)
+    logger.info(
+        "watcher init [%s]: last_block=%d (head=%d, lookback=%d)",
+        chain_id, start, head, _chain_initial_lookback(chain_id),
+    )
     return start
 
 
@@ -263,10 +282,13 @@ async def _scan_chain_once(db, chain: dict, rpc: AlchemyRPC) -> dict:
         # Tiny spacing to spread load across the poll window and avoid 429s
         await asyncio.sleep(0.08)
 
-    # Only advance the cursor if we actually got through the users cleanly enough.
-    # If more than a third of users were rate-limited, hold the cursor so the
-    # next scan retries the same window.
-    if rate_limited < max(1, len(users) // 3):
+    # Only advance the cursor when EVERY user in this scan cycle was
+    # successfully scanned. Even one rate-limited user must hold the
+    # cursor back so their pending block window is retried next cycle
+    # — otherwise silent under-crediting happens (e.g. user_29 gets
+    # thrown into the 429 bucket every cycle and their deposits are
+    # never seen).
+    if rate_limited == 0:
         await _set_last_block(db, chain["id"], to_block)
 
     return {
