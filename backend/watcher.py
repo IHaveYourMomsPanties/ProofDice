@@ -230,6 +230,7 @@ async def _scan_chain_once(db, chain: dict, rpc: AlchemyRPC) -> dict:
     users = await db.users.find({}, {"id": 1, "username": 1, "wallet_index": 1}).to_list(length=10_000)
     from_inc = from_block + 1
     credited = 0
+    rate_limited = 0
 
     for u in users:
         idx = int(u.get("wallet_index", 0))
@@ -238,9 +239,19 @@ async def _scan_chain_once(db, chain: dict, rpc: AlchemyRPC) -> dict:
         addr = _derive_by_kind("evm", idx).lower()
         try:
             transfers = await rpc.asset_transfers(addr, from_inc, to_block)
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code if e.response is not None else None
+            if code == 429:
+                rate_limited += 1
+                # Skip user this scan — next scan will retry the same range
+                await asyncio.sleep(0.2)
+                continue
+            logger.error("asset_transfers HTTP %s [%s] %s", code, chain["id"], addr)
+            continue
         except Exception:
             logger.exception("asset_transfers failed [%s] %s", chain["id"], addr)
             continue
+
         for t in transfers:
             cls = _classify_transfer(t, chain)
             if not cls:
@@ -249,8 +260,23 @@ async def _scan_chain_once(db, chain: dict, rpc: AlchemyRPC) -> dict:
             if await _credit_deposit(db, u, t, asset, amount, chain["label"], chain["id"]):
                 credited += 1
 
-    await _set_last_block(db, chain["id"], to_block)
-    return {"chain": chain["id"], "scanned": len(users), "credited": credited, "head": head, "to_block": to_block}
+        # Tiny spacing to spread load across the poll window and avoid 429s
+        await asyncio.sleep(0.08)
+
+    # Only advance the cursor if we actually got through the users cleanly enough.
+    # If more than a third of users were rate-limited, hold the cursor so the
+    # next scan retries the same window.
+    if rate_limited < max(1, len(users) // 3):
+        await _set_last_block(db, chain["id"], to_block)
+
+    return {
+        "chain": chain["id"],
+        "scanned": len(users),
+        "credited": credited,
+        "rate_limited": rate_limited,
+        "head": head,
+        "to_block": to_block,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -270,6 +296,11 @@ async def _chain_loop(db, chain: dict) -> None:
             stats = await _scan_chain_once(db, chain, rpc)
             if stats.get("credited", 0) > 0:
                 logger.info("watcher [%s] scan: %s", chain["id"], stats)
+            elif stats.get("rate_limited", 0) > 0:
+                logger.warning(
+                    "watcher [%s] rate-limited on %d/%d users this poll — will retry next scan",
+                    chain["id"], stats["rate_limited"], stats["scanned"],
+                )
             consecutive_403 = 0
         except asyncio.CancelledError:
             raise
